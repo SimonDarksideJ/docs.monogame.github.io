@@ -3,7 +3,7 @@ title: "Chapter 06: Color Swap Effect"
 description: "Create a shader to change the colors of the game"
 ---
 
-In this chapter we will create a powerful color-swapping effect, we will learn about a common and flexible technique that uses textures as a Look-Up Table (LUT) to map original colors to new ones. This will give us precise control over the look and feel of our game's sprites.
+In this chapter we will create a powerful color‑swapping effect. We will learn a common and flexible technique that uses textures as look‑up tables (LUTs) to map original colors to new ones. This will give us precise control over the look and feel of our game's sprites.
 
 At the end of this chapter, we will be able to fine-tune the colors of the game. Here are a few examples:
 
@@ -81,7 +81,7 @@ The goal is to be able to change the color of the sprites drawn with the `_color
 | :----------------------------------------------------------------------------: |
 |                **Figure 6-7: The slime uses a dark blue color**                |
 
-The shader code _could_ just do an `if` check for this color, and when any of the pixels are that color, return a hot-pink color instead. Try swapping out the "MainPS" shader function in the `colorSwapEffect.fx` file to the following, the highlighted section shows where the hard coded colour swap is happening:
+The shader code _could_ just do an `if` check for this color, and when any of the pixels are that color, return a hot-pink color instead. Try swapping out the "MainPS" shader function in the `colorSwapEffect.fx` file to the following, the highlighted section shows where the hard coded color swap is happening:
 
 [!code-hlsl[](./snippets/snippet-6-07.hlsl?highlight=14)]
 
@@ -137,7 +137,7 @@ Here is the actual texture with the swapped colors. Download [this image](./imag
 | :--------------------------------------------------------------: |
 |             **Figure 6-12: The color table texture**              |
 
-We need to load and pass the the texture to the `colorSwapEffect` shader.
+We need to load and pass the texture to the `colorSwapEffect` shader.
 
 1. Add a `_colorMap` property to the `GameScene` class to hold a reference for the Color map texture:
 
