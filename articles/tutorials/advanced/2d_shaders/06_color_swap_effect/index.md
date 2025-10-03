@@ -325,7 +325,17 @@ Ultimately, it would be nice to control the color value _per_ slime segment, not
 
     [!code-csharp[](./snippets/snippet-6-24.cs)]
 
-7. Finally, play around with the colors until you find something you like.
+7. A bit of cleanup, if you left in the old time highlight code, make sure to **REMOVE** it from the `Draw` method too (because the updated `slime.Draw` now handles this).
+
+    ```csharp
+    // REMOVE ME
+    // if ((int)gameTime.TotalGameTime.TotalSeconds % 2 == 0)
+    // {
+    //     _colorSwapMaterial.SetParameter("ColorMap", _slimeColorMap.ColorMap);
+    // }
+    ```
+
+8. Finally, play around with the colors until you find something you like.
 
 > [!NOTE]
 > If nothing is playing, [remember](#getting-started) we disabled the gameplay earlier in this chapter for testing, so remove the extra `return;` statement in the `Update` method of the `GameScene` class to get it running again.
