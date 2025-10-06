@@ -13,7 +13,6 @@ public void DebugDraw()
 	var colorRect = colorBorderRect;
 	colorRect.Inflate(-8, -8);
 	
-	
 	// the debug view for the light buffer lives in the top-right.
 	var lightBorderRect = new Rectangle(
 		x: viewportBounds.Width / 2, 
@@ -24,7 +23,6 @@ public void DebugDraw()
 	// shrink the light rect by 8 pixels
 	var lightRect = lightBorderRect;
 	lightRect.Inflate(-8, -8);
-
 	
 	Core.SpriteBatch.Begin();
 	
