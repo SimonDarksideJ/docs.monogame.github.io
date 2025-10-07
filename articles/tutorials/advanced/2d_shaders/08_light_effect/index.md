@@ -1,9 +1,9 @@
 ---
 title: "Chapter 08: Light Effect"
-description: "Add dynamic 2d lighting to the game"
+description: "Add dynamic 2D lighting to the game"
 ---
 
-In this chapter, we are going to add a dynamic 2d lighting system to _Dungeon Slime_. At the end of this chapter, the game will look something like this:
+In this chapter, we are going to add a dynamic 2D lighting system to _Dungeon Slime_. At the end of this chapter, the game will look something like this:
 
 | ![Figure 8-1: The game will have lighting](./gifs/final.gif) |
 | :-------------------------------------------------: |
@@ -16,7 +16,7 @@ There are two broad categories of strategies for rendering lights in a game,
 1. [_Forward_](https://en.wikipedia.org/wiki/Shading) rendering, and
 2. [_Deferred_](https://en.wikipedia.org/wiki/Deferred_shading) rendering.
 
-In the earlier days of computer graphics, forward rendering was ubiquitous. Imagine a simple 2d where there is a single sprite with 3 lights nearby. The sprite would be rendered 3 times, once for each light. Each individual pass would layer any existing passes with the next light. This technique is forward rendering, and there are many optimizations that make it fast and efficient. However, in a scene with lots of objects and lots of lights, each object needs to be rendered for each light, and the amount of rendering can scale poorly. The amount of work the renderer needs to do is roughly proportional to the number of sprites (`S`) multiplied by the number of lights (`L`), or `S * L`.
+In the earlier days of computer graphics, forward rendering was ubiquitous. Imagine a simple 2D scene where there is a single sprite with 3 lights nearby. The sprite would be rendered 3 times, once for each light. Each individual pass would layer any existing passes with the next light. This technique is forward rendering, and there are many optimizations that make it fast and efficient. However, in a scene with lots of objects and lots of lights, each object needs to be rendered for each light, and the amount of rendering can scale poorly. The amount of work the renderer needs to do is roughly proportional to the number of sprites (`S`) multiplied by the number of lights (`L`), or `S * L`.
 
 In the 2000's, the deferred rendering strategy was [introduced](https://sites.google.com/site/richgel99/the-early-history-of-deferred-shading-and-lighting) and popularized by games like [S.T.A.L.K.E.R](https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-9-deferred-shading-stalker). In deferred rendering, each object is drawn _once_ without _any_ lights to an off-screen texture. Then, each light is drawn on top of the off-screen texture. To make that possible, the initial rendering pass draws extra data about the scene into additional off-screen textures. Theoretically, a deferred renderer can handle more lights and objects because the work is roughly approximate to the sprites (`S`) _added_ to the lights (`L`), or `S + L`.
 
@@ -54,7 +54,7 @@ The second stage references a new term, called the _Normal_ Map. We will come ba
     > [!NOTE]
     > Set the render target to `null` to draw to the screen.
     >
-    > `RenderTarget`'s are off-screen buffers that MonoGame can draw graphics into. If the render target is `null`, then there is no off-screen buffer to use, and as such, the only place to render the graphics in this case is directly to the screen.
+    > `RenderTarget`s are off-screen buffers that MonoGame can draw graphics into. If the render target is `null`, then there is no off-screen buffer to use, and as such, the only place to render the graphics in this case is directly to the screen.
 
    Add the following method to the `DeferredRenderer` class.
 
@@ -82,7 +82,7 @@ The second stage references a new term, called the _Normal_ Map. We will come ba
 
     [!code-csharp[](./snippets/snippet-8-07.cs)]
 
-8. And call this new method from end the `Draw()` method, after the GUM UI draws:
+8. And call this new method from the end of the `Draw()` method, after the GUM UI draws:
 
     [!code-csharp[](./snippets/snippet-8-08.cs?highlight=8-9)]
 
@@ -156,7 +156,7 @@ Each light will be drawn using a shader so that the fall-off and intensity can b
 
     [!code-csharp[](./snippets/snippet-8-19.cs)]
 
-8. Next, we need to draw the `PointLight` list using the new `PointLightMaterial`. Add the following function the `PointLight` class:
+8. Next, we need to draw the `PointLight` list using the new `PointLightMaterial`. Add the following function to the `PointLight` class:
 
     [!code-csharp[](./snippets/snippet-8-20.cs)]
 
@@ -176,9 +176,9 @@ Now when you run the game, you will see a blank white square where the point lig
 > [!NOTE]
 > If you want to clear up all the other Debug windows for the previous effects, feel free to go through the `LoadContent` methods in each of the classes and either set `Material.IsDebugVisible = false;` or just remove those lines.
 
-The next task is to write the `pointLightEffect.fx` shader file so that the white square looks more like a point light. There are several ways to create the effect, some more realistic than others. For _DungeonSlime_, a realistic light fall off is not going to look great, so we will develop something custom.
+The next task is to write the `pointLightEffect.fx` shader file so that the white square looks more like a point light. There are several ways to create the effect, some more realistic than others. For _DungeonSlime_, a realistic light falloff is not going to look great, so we will develop something custom.
 
-1. To start, open the `pointLightEffect.fx` shader in the `MonoGameLibrary` _SharedContent/effects_ folder and replace the `MainPS` function with the following, which calculates the distance from the center of the image and render it to the red-channel:
+1. To start, open the `pointLightEffect.fx` shader in the `MonoGameLibrary` _SharedContent/effects_ folder and replace the `MainPS` function with the following, which calculates the distance from the center of the image and renders it to the red-channel:
 
     [!code-hlsl[](./snippets/snippet-8-22.hlsl)]
 
@@ -208,7 +208,7 @@ The next task is to write the `pointLightEffect.fx` shader file so that the whit
     | :---------------------------------------------------------------------------: |
     |                  **Figure 8-8: A LightBrightness parameter**                  |
 
-4. It would also be good to control the sharpness of the fall off. The `pow()` function raises the `falloff` to some exponent value:
+4. It would also be good to control the sharpness of the falloff. The `pow()` function raises the `falloff` to some exponent value:
 
     [!code-hlsl[](./snippets/snippet-8-25.hlsl?highlight=2,9)]
 
@@ -314,15 +314,15 @@ Now that the light and color buffers are being drawn to separate off screen text
 
 ### Normal Textures
 
-The lighting is working, but it still feels a bit flat. Ultimately, the light is being applied to our flat 2d sprites uniformly, so there the sprites do not feel like they have any depth. Normal mapping is a technique designed to help make flat surfaces appear 3d by changing how much the lighting affects each pixel depending on the "Normal" of the surface at the given pixel.
+The lighting is working, but it still feels a bit flat. Ultimately, the light is being applied to our flat 2D sprites uniformly, so there the sprites do not feel like they have any depth. Normal mapping is a technique designed to help make flat surfaces appear 3D by changing how much the lighting affects each pixel depending on the "Normal" of the surface at the given pixel.
 
-Normal textures encode the _direction_ (also called the _normal_) of the surface at each pixel. The direction of the surface is a 3d vector where the `x` component lives in the `red` channel, the `y` component lives in the `green` channel, and the `z` component lives in the `blue` channel. The directions are encoded as colors, so each component can only range from `0` to `1`. The _direction_ vector components need to range from `-1` to `1`, so a color channel value of `.5` results in a `0` value for the direction vector.
+Normal textures encode the _direction_ (also called the _normal_) of the surface at each pixel. The direction of the surface is a 3D vector where the `x` component lives in the `red` channel, the `y` component lives in the `green` channel, and the `z` component lives in the `blue` channel. The directions are encoded as colors, so each component can only range from `0` to `1`. The _direction_ vector components need to range from `-1` to `1`, so a color channel value of `.5` results in a `0` value for the direction vector.
 
 > [!NOTE]
 >
 > If you want to learn more about the foundations of normal mapping, check out this article on [Normal Mapping](https://learnopengl.com/Advanced-Lighting/Normal-Mapping) from [LearnOpenGL.com](https://learnopengl.com/)
 
-Generating normal maps is an artform. Generally, you find a _normal map picker_, similar to a color wheel, and paint the directions on-top of your existing artwork. This page on [open game art](https://opengameart.org/content/pixelart-normal-map-handpainting-helper) has a free normal map wheel that shows the colors for various directions along a low-resolution sphere.
+Generating normal maps is an art form. Generally, you find a _normal map picker_, similar to a color wheel, and paint the directions on top of your existing artwork. This page on [open game art](https://opengameart.org/content/pixelart-normal-map-handpainting-helper) has a free normal map wheel that shows the colors for various directions along a low-resolution sphere.
 
 | ![Figure 8-16: A normal picker wheel](https://opengameart.org/sites/default/files/styles/medium/public/normalmaphelper.png) |
 | :-------------------------------------------------------------------------------------------------------------------------: |
@@ -366,7 +366,7 @@ Now that we have the art assets, it is time to work the normal maps into the cod
 
         [!code-hlsl[](./snippets/snippet-8-45.hlsl?highlight=6)]
 
-6. In C#, when the `GraphcisDevice.SetRenderTarget()` function is called, it sets the texture that the `COLOR0` semantic will be sent to. However, there is an overload called `SetRenderTargets()` that accepts _multiple_ `RenderTarget2D`'s, and each additional texture will be assigned to the next `COLOR` semantic.
+6. In C#, when the `GraphicsDevice.SetRenderTarget()` function is called, it sets the texture that the `COLOR0` semantic will be sent to. However, there is an overload called `SetRenderTargets()` that accepts _multiple_ `RenderTarget2D`s, and each additional texture will be assigned to the next `COLOR` semantic.
 
    Replace the `StartColorPhase()` function in the `DeferredRenderer` with the following:
 
@@ -383,7 +383,7 @@ Now that we have the art assets, it is time to work the normal maps into the cod
 
     [!code-csharp[](./snippets/snippet-8-47.cs)]
 
-8. Do not forget to restore the call to the `DebugDraw()` method at the end of the `GameScene`'s `Draw()` method (`_deferredRenderer.DebugDraw();`). You will see a totally `red` `NormalBuffer`, because the shader is hard coding the value to `float4(1,0,0,1)`.
+8. Do not forget to restore the call to the `DebugDraw()` method at the end of the `GameScene`'s `Draw()` method (`_deferredRenderer.DebugDraw();`). You will see a completely `red` `NormalBuffer`, because the shader is hard coding the value to `float4(1,0,0,1)`.
 
 | ![Figure 8-17: A blank normal buffer](./images/normal-buffer-red.png) |
 | :-------------------------------------------------------------------: |
@@ -413,7 +413,7 @@ To start rendering the normal values themselves, we need to load the normal text
     | :--------------------------------------------------------: |
     |              **Figure 8-18: The normal map**               |
 
-### Combing Normals with Lights
+### Combining Normals with Lights
 
 When each individual light is drawn into the `LightBuffer`, it needs to use the `NormalBuffer` information to modify the amount of light being drawn at each pixel. To set up, the `PointLightMaterial` is going to need access to the `NormalBuffer`.
 
@@ -429,11 +429,11 @@ When each individual light is drawn into the `LightBuffer`, it needs to use the 
 
     [!code-hlsl[](./snippets/snippet-8-55.hlsl)]
 
-    The challenge here is to find the normal value of the pixel that the light is currently shading in the pixel shader. However, the shader's `uv` coordinate space is relative to the light itself, not the screen, the `NormalBuffer` is relative to the entire screen, not the light.
+    The challenge here is to find the normal value of the pixel that the light is currently shading in the pixel shader. However, the shader's `uv` coordinate space is relative to the light itself. The `NormalBuffer` is relative to the entire screen, not the light.
 
-    We need to be able to convert the light's `uv` coordinate space into screen space, which can be done in a custom vertex shader. The vertex shader's job is to convert the world space into clip space, which in a 2d game like _Dungeon Slime_, essentially _is_ screen space. The screen coordinates can be calculated in the vertex function and then passed along to the pixel shader by extending the outputs of the vertex shader struct.
+    We need to be able to convert the light's `uv` coordinate space into screen space, which can be done in a custom vertex shader. The vertex shader's job is to convert the world space into clip space, which in a 2D game like _Dungeon Slime_, essentially _is_ screen space. The screen coordinates can be calculated in the vertex function and then passed along to the pixel shader by extending the outputs of the vertex shader struct.
 
-   In order to override the vertex shader function, we will need to repeat the `MatrixTransform` work from the previous chapter. However, it would better to _re-use_ the work from the previous chapter so that the lights also tilt and respond to the `MatrixTransform` that the rest of the game world uses.
+   In order to override the vertex shader function, we will need to repeat the `MatrixTransform` work from the previous chapter. However, it would be better to _re-use_ the work from the previous chapter so that the lights also tilt and respond to the `MatrixTransform` that the rest of the game world uses.
 
 4. Add a reference to the `3dEffect.fxh` file in the `pointLightEffect.fx` shader:
 
@@ -445,7 +445,7 @@ When each individual light is drawn into the `LightBuffer`, it needs to use the 
 
     [!code-hlsl[](./snippets/snippet-8-57.hlsl?highlight=6)]
 
-6. Next, create a new vertex function that uses the new `LightVertexShaderOutput`. This function will call to the existing `MainVS` function that does the 3d effect, and add the screen coordinates afterwards:
+6. Next, create a new vertex function that uses the new `LightVertexShaderOutput`. This function will call to the existing `MainVS` function that does the 3D effect, and add the screen coordinates afterwards:
 
     [!code-hlsl[](./snippets/snippet-8-58.hlsl)]
 
@@ -490,9 +490,9 @@ When each individual light is drawn into the `LightBuffer`, it needs to use the 
 
     There are two workarounds:
 
-    1. Modify the shader code to read data from the main `SpriteTextureSampler` and use the resulting color "_somehow_" in the computation fro the final result of the shader.
+    1. Modify the shader code to read data from the main `SpriteTextureSampler` and use the resulting color "_somehow_" in the computation for the final result of the shader.
         > [!NOTE]
-        > For example, You could multiple the color by a very small constant, like `.00001`, and then add the product to the final color. It would have no perceivable effect, but the shader compiler would not be optimize the sampler away. Hoewver, this is useless and silly work. Worse, it will likely confuse anyone who looks at the shader in the future.
+        > For example, You could multiple the color by a very small constant, like `.00001`, and then add the product to the final color. It would have no perceivable effect, but the shader compiler would not be optimize the sampler away. However, this is useless and silly work. Worse, it will likely confuse anyone who looks at the shader in the future.
     2. The better approach is to pass the `NormalBuffer` to the `Draw()` function directly, and not bother sending it as a shader parameter at all.
 
 12. Change the `Draw()` method in the `PointLight` class to pass the `normalBuffer` to the `SpriteBatch.Draw()` method _instead_ of passing it in as a parameter to the `PointLightMaterial`.
@@ -509,7 +509,7 @@ When each individual light is drawn into the `LightBuffer`, it needs to use the 
 
     Now it is time to _use_ the normal data in conjunction with the light direction to decide how much light each pixel should receive.
 
-13. Replace the `MainPS` function in the `pointLightEffect` shader code to the following:
+13. Replace the `MainPS` function in the `pointLightEffect` shader code with the following:
 
     [!code-hlsl[](./snippets/snippet-8-65.hlsl)]
 
