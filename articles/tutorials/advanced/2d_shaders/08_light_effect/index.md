@@ -51,7 +51,7 @@ The second stage references a new term, called the _Normal_ Map. We will come ba
 
 3. Once all of the rendering is complete, we need to switch the primary render target back to the _screen_ so that we can actually see anything.
 
-    > [!note]
+    > [!NOTE]
     > Set the render target to `null` to draw to the screen.
     >
     > `RenderTarget`'s are off-screen buffers that MonoGame can draw graphics into. If the render target is `null`, then there is no off-screen buffer to use, and as such, the only place to render the graphics in this case is directly to the screen.
@@ -114,7 +114,7 @@ The next step is to create some lights and render them to a second off-screen te
 
 5. To finish off with the light implementation changes for now, add the `LightBuffer` to the `DebugDraw()` view of `DeferredRenderer` as well:
 
-    [!code-csharp[](./snippets/snippet-8-13.cs?highlight=17-26,38-39)]
+    [!code-csharp[](./snippets/snippet-8-13.cs?highlight=17-26,35-39)]
 
 Now when you run the game, you will see a blank texture in the top-right. It is blank because there are no lights yet.
 
@@ -182,7 +182,7 @@ The next task is to write the `pointLightEffect.fx` shader file so that the whit
 
     [!code-hlsl[](./snippets/snippet-8-22.hlsl)]
 
-    > [!note]
+    > [!NOTE]
     > For the sake of clarity, these screenshots show only the `LightBuffer` as full screen, that way we can focus on the distance based return value.
 
     | ![Figure 8-6: Showing the distance from the center of the light in the red channel](./images/point-light-dist.png) |
@@ -250,63 +250,67 @@ The light looks good! When we revert the full-screen `LightBuffer` and render th
 
 Now that the light and color buffers are being drawn to separate off screen textures, we need to _composite_ them to create the final screen render.
 
-1. Create a new Sprite Effect in the shared content folder called `deferredCompositeEffect.fx`.
+1. Create a new Sprite Effect in the `SharedContent` folder of the `MonoGameLibrary` project called `deferredCompositeEffect` in the MGCB editor.
 
-| ![Figure 8-12: Adding the `deferredCompositeEffect`](./images/mgcb-dce.png) |
-| :------------------------------------------------------------------------: |
-|               **Figure 8-12: Adding the `deferredCompositeEffect`**               |
+    | ![Figure 8-12: Adding the `deferredCompositeEffect`](./images/mgcb-dce.png) |
+    | :------------------------------------------------------------------------: |
+    |               **Figure 8-12: Adding the `deferredCompositeEffect`**               |
 
-2. Create a new class member in the `Core` class to hold the material:
+2. Open the `Core.cs` class so we can add the new shader to the pipeline, add a new property to hold the material:
 
-[!code-csharp[](./snippets/snippet-8-31.cs)]
+    [!code-csharp[](./snippets/snippet-8-31.cs)]
 
-2. And load the effect in the `LoadContent()` method of the `Core` class:
+3. Then load the effect in the `LoadContent()` method:
 
-[!code-csharp[](./snippets/snippet-8-32.cs)]
+    [!code-csharp[](./snippets/snippet-8-32.cs)]
 
-3. To enable hot-reload support, add the `Update()` method:
+4. To enable hot-reload support, also add the `Update()` method:
 
-[!code-csharp[](./snippets/snippet-8-33.cs)]
+    [!code-csharp[](./snippets/snippet-8-33.cs)]
 
-4. Create a new method in the `DeferredRenderer` class that will draw the composited image:
+5. Next, create a new method in the `DeferredRenderer` class that will draw the composited image:
 
-[!code-csharp[](./snippets/snippet-8-34.cs)]
+    [!code-csharp[](./snippets/snippet-8-34.cs)]
 
-5. And instead of calling the `DebugDraw()` from the `GameScene`, call the new method before the GUM UI is drawn:
+6. And instead of calling the `DebugDraw()` from the `GameScene`, call the new method before the GUM UI is drawn:
 
-[!code-csharp[](./snippets/snippet-8-35.cs)]
+    [!code-csharp[](./snippets/snippet-8-35.cs?highlight=6)]
 
-6. If you run the game now, it will appear as it did when we started the chapter! Now it is time to factor in the `LightBuffer`. The `deferredCompositeEffect` shader needs to get the `LightBuffer` and multiply it with the `ColorBuffer`. The `ColorBuffer` is being passed in as the main sprite from `SpriteBatch`, so we will need to add a second texture and sampler to the shader to get the `LightBuffer`:
+    If you run the game now, it will appear as it did when we started the chapter! Now it is time to factor in the `LightBuffer`. The `deferredCompositeEffect` shader needs to get the `LightBuffer` and multiply it with the `ColorBuffer`. The `ColorBuffer` is being passed in as the main sprite from `SpriteBatch`, so we will need to add a second texture and sampler to the shader to get the `LightBuffer`.
 
-[!code-hlsl[](./snippets/snippet-8-36.hlsl)]
+7. Open the new `deferredCompositeEffect.fx` shader and add the following property:
 
-7. In the `DeferredRenderer` class, in the `DrawComposite` function before the sprite batch starts, make sure to pass the `LightBuffer` to the material:
+    [!code-hlsl[](./snippets/snippet-8-36.hlsl)]
 
-[!code-csharp[](./snippets/snippet-8-37.cs)]
+8. The main pixel function for the shader reads both the color and light values and returns their product, replace the `MainPS` function with the following:
 
-8. The main pixel function for the shader reads both the color and light values and returns their product:
+    [!code-hlsl[](./snippets/snippet-8-38.hlsl)]
 
-[!code-hlsl[](./snippets/snippet-8-38.hlsl)]
+    | ![Figure 8-13: The light and color composited](./images/composite-1.png) |
+    | :----------------------------------------------------------------------: |
+    |             **Figure 8-13: The light and color composited**              |
 
-| ![Figure 8-13: The light and color composited](./images/composite-1.png) |
-| :----------------------------------------------------------------------: |
-|             **Figure 8-13: The light and color composited**              |
+9. Back in the `DeferredRenderer` class, in the `DrawComposite` function before the sprite batch starts, make sure to pass the `LightBuffer` to the material:
 
-9. The light is working! However, the whole scene is too dark to see what is going on or play the game. To solve this, we can add a small amount of ambient light:
+    [!code-csharp[](./snippets/snippet-8-37.cs?highlight=3)]
 
-[!code-hlsl[](./snippets/snippet-8-39.hlsl)]
+    The light is working! However, the whole scene is too dark to see what is going on or play the game.
 
-| ![Figure 8-14: Adding ambient light](./gifs/composite-ambient.gif) |
-| :----------------------------------------------------------------: |
-|               **Figure 8-14: Adding ambient light**                |
+10. To solve this, we can add a small amount of ambient light to the `deferredCompositeEffect` shader:
 
-10. Find a value of ambient that you like and set the parameter from code:
+    [!code-hlsl[](./snippets/snippet-8-39.hlsl)]
 
-[!code-csharp[](./snippets/snippet-8-40.cs)]
+    | ![Figure 8-14: Adding ambient light](./gifs/composite-ambient.gif) |
+    | :----------------------------------------------------------------: |
+    |               **Figure 8-14: Adding ambient light**                |
 
-| ![Figure 8-15: A constant ambient value](./gifs/composite-light-no-vert.gif) |
-| :--------------------------------------------------------------------------: |
-|                  **Figure 8-15: A constant ambient value**                   |
+11. Find a value of ambient that you like and then set the parameter from code in the `DrawComposite` method of the `DeferredRenderer`:
+
+    [!code-csharp[](./snippets/snippet-8-40.cs)]
+
+    | ![Figure 8-15: A constant ambient value](./gifs/composite-light-no-vert.gif) |
+    | :--------------------------------------------------------------------------: |
+    |                  **Figure 8-15: A constant ambient value**                   |
 
 ### Normal Textures
 
@@ -314,7 +318,7 @@ The lighting is working, but it still feels a bit flat. Ultimately, the light is
 
 Normal textures encode the _direction_ (also called the _normal_) of the surface at each pixel. The direction of the surface is a 3d vector where the `x` component lives in the `red` channel, the `y` component lives in the `green` channel, and the `z` component lives in the `blue` channel. The directions are encoded as colors, so each component can only range from `0` to `1`. The _direction_ vector components need to range from `-1` to `1`, so a color channel value of `.5` results in a `0` value for the direction vector.
 
-> [!note]
+> [!NOTE]
 >
 > If you want to learn more about the foundations of normal mapping, check out this article on [Normal Mapping](https://learnopengl.com/Advanced-Lighting/Normal-Mapping) from [LearnOpenGL.com](https://learnopengl.com/)
 
@@ -332,7 +336,7 @@ For reference, the existing texture atlas is on the left, and a version of the a
 | :------------------------------------------------------------: | :-----------------------------------------------------------------: |
 |          **Figure 8-17: The existing texture atlas**           |                **Figure 8-18: The normal texture atlas**            |
 
-Download the [atlas-normal.png](./images/atlas-normal.png) texture and add it to the _DungeonSlime_'s content folder. Include it in the mgcb content file.
+Download the [atlas-normal.png](./images/atlas-normal.png) texture, add it to the _DungeonSlime_'s `Content/Images` folder and include it in the mgcb content file.
 
 Now that we have the art assets, it is time to work the normal maps into the code.
 
@@ -340,46 +344,46 @@ Now that we have the art assets, it is time to work the normal maps into the cod
 
    Start by adding a new `RenderTarget2D` to the `DeferredRenderer` class:
 
-[!code-csharp[](./snippets/snippet-8-41.cs)]
+    [!code-csharp[](./snippets/snippet-8-41.cs)]
 
 2. And initialize it in the `DeferredRenderer`'s constructor:
 
-[!code-csharp[](./snippets/snippet-8-42.cs)]
+    [!code-csharp[](./snippets/snippet-8-42.cs)]
 
 3. So far in the series, all of the pixel shaders have returned a _single_ `float4` with the `COLOR` semantic. MonoGame supports _Multiple Render Targets_ by having a shader return a `struct` with _multiple_ fields each with a unique `COLOR` semantic.
 
    Add the following `struct` to the `gameEffect.fx` file:
 
-[!code-hlsl[](./snippets/snippet-8-43.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-43.hlsl)]
 
 4. At the moment, the `gameEffect.fx` is just registering the `ColorSwapPS` function as the pixel function, but we will need to extend the logic to support the normal values.
 
    Create a new function in the file that will act as the new pixel shader function:
 
-[!code-hlsl[](./snippets/snippet-8-44.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-44.hlsl)]
 
 5. And do not forget to update the `technique` to reference the new `MainPS` function:
 
-[!code-hlsl[](./snippets/snippet-8-45.hlsl?highlight=6)]
+        [!code-hlsl[](./snippets/snippet-8-45.hlsl?highlight=6)]
 
-6. In C#, when the `GraphcisDevice.SetRenderTarget()` function is called, it sets the texture that the `COLOR0` semantic will be sent to. However, there is an overload called `SetRenderTargets()` that accepts _multiple_ `RenderTarget2D`s, and each additional texture will be assigned to the next `COLOR` semantic.
+6. In C#, when the `GraphcisDevice.SetRenderTarget()` function is called, it sets the texture that the `COLOR0` semantic will be sent to. However, there is an overload called `SetRenderTargets()` that accepts _multiple_ `RenderTarget2D`'s, and each additional texture will be assigned to the next `COLOR` semantic.
 
-   Rewrite the `StartColorPhase()` function in the `DeferredRenderer` as follows:
+   Replace the `StartColorPhase()` function in the `DeferredRenderer` with the following:
 
-[!code-csharp[](./snippets/snippet-8-46.cs)]
+    [!code-csharp[](./snippets/snippet-8-46.cs)]
 
-> [!note]
-> The _GBuffer_
->
-> The `ColorBuffer` and `NormalBuffer` are grouped together and often called the _Geometry-Buffer_ (G-Buffer). In other deferred renderers, there is even more information stored in the G-Buffer as additional textures, such as depth information, material information, or game specific data.
+    > [!NOTE]
+    > [The _GBuffer_](https://learnopengl.com/advanced-lighting/deferred-shading)
+    >
+    > The `ColorBuffer` and `NormalBuffer` are grouped together and often called the _Geometry-Buffer_ (G-Buffer). In other deferred renderers, there is even more information stored in the G-Buffer as additional textures, such as depth information, material information, or game specific data.
 
-7. To visualize the `NormalBuffer`, we will switch back to the `DebugDraw()` method.
+7. To visualize the `NormalBuffer`, we will update the `DebugDraw()` method.
 
    The `NormalBuffer` will be rendered in the lower-left corner of the screen:
 
-[!code-csharp[](./snippets/snippet-8-47.cs)]
+    [!code-csharp[](./snippets/snippet-8-47.cs)]
 
-8. And do not forget to call the `DebugDraw()` method from the `GameScene`'s `Draw()` method. Then you will see a totally `red` `NormalBuffer`, because the shader is hard coding the value to `float4(1,0,0,1)`.
+8. Do not forget to restore the call to the `DebugDraw()` method at the end of the `GameScene`'s `Draw()` method (`_deferredRenderer.DebugDraw();`). You will see a totally `red` `NormalBuffer`, because the shader is hard coding the value to `float4(1,0,0,1)`.
 
 | ![Figure 8-17: A blank normal buffer](./images/normal-buffer-red.png) |
 | :-------------------------------------------------------------------: |
@@ -387,142 +391,136 @@ Now that we have the art assets, it is time to work the normal maps into the cod
 
 To start rendering the normal values themselves, we need to load the normal texture into the `GameScene` and pass it along to the `gameEffect.fx` effect.
 
-1. First, create a class member for the new `Texture2D`:
+1. First, in the `GameScene` class, create a new `Texture2D` property:
 
-[!code-csharp[](./snippets/snippet-8-48.cs)]
+    [!code-csharp[](./snippets/snippet-8-48.cs)]
 
-2. Then load the texture in the `LoadContent()` method:
+2. Then load the texture in the `LoadContent()` method and pass it to the `_gameEffect` material as a parameter:
 
-[!code-csharp[](./snippets/snippet-8-49.cs)]
+    [!code-csharp[](./snippets/snippet-8-49.cs?highlight=5-6,14)]
 
-3. And finally, pass it to the `_gameEffect` material as a parameter:
+3. The `GameEffect` shader needs to expose a `Texture2D` and `Sampler` state for the new normal texture, so add the following property to the shader:
 
-[!code-csharp[](./snippets/snippet-8-50.cs?highlight=10)]
+    [!code-hlsl[](./snippets/snippet-8-51.hlsl)]
 
-4. The shader itself needs to expose a `Texture2D` and `Sampler` state for the new normal texture:
+4. And then finally the `MainPS` shader function needs to be updated to read the `NormalMap` data for the current pixel:
 
-[!code-hlsl[](./snippets/snippet-8-51.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-52.hlsl)]
 
-5. And then finally the `MainPS` shader function needs to read the `NormalMap` data for the current pixel:
+5. Now the `NormalBuffer` is being populated with the normal data for each sprite.
 
-[!code-hlsl[](./snippets/snippet-8-52.hlsl)]
-
-6. Now the `NormalBuffer` is being populated with the normal data for each sprite.
-
-| ![Figure 8-18: The normal map](./images/normal-buffer.png) |
-| :--------------------------------------------------------: |
-|              **Figure 8-18: The normal map**               |
+    | ![Figure 8-18: The normal map](./images/normal-buffer.png) |
+    | :--------------------------------------------------------: |
+    |              **Figure 8-18: The normal map**               |
 
 ### Combing Normals with Lights
 
 When each individual light is drawn into the `LightBuffer`, it needs to use the `NormalBuffer` information to modify the amount of light being drawn at each pixel. To set up, the `PointLightMaterial` is going to need access to the `NormalBuffer`.
 
-1. Start by modifying the `PointLight.Draw()` function to take in the `NormalMap` as a `Texture2D`, and set it as a parameter on the `PointLightMaterial`:
+1. Starting with the `PointLight` class in the `MonoGameLibrary` project, update the `Draw()` method to take in the `NormalMap` as a `Texture2D`, and set it as a parameter on the `PointLightMaterial`:
 
-[!code-csharp[](./snippets/snippet-8-53.cs)]
+    [!code-csharp[](./snippets/snippet-8-53.cs?highlight=1,3)]
 
 2. And then to pass the `NormalBuffer`, modify the `GameScene`'s `Draw()` method to pass the buffer:
 
-[!code-csharp[](./snippets/snippet-8-54.cs)]
+    [!code-csharp[](./snippets/snippet-8-54.cs)]
 
-3. The `pointLightEffect.fx` shader needs to accept the `NormalBuffer` as a new `Texture2D` and `Sampler`:
+3. The `pointLightEffect.fx` shader also needs to accept the `NormalBuffer` as a new `Texture2D` and `Sampler`:
 
-[!code-hlsl[](./snippets/snippet-8-55.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-55.hlsl)]
 
-4. The challenge is to find the normal value of the pixel that the light is currently shading in the pixel shader. However, the shader's `uv` coordinate space is relative to the light itself, not the screen. The `NormalBuffer` is relative to the entire screen, not the light. We need to be able to convert the light's `uv` coordinate space into screen space. This can be done in a custom vertex shader. The vertex shader's job is to convert the world space into clip space, which in a 2d game like _Dungeon Slime_, essentially _is_ screen space. The screen coordinates can be calculated in the vertex function, and then passed along to the pixel shader by extending the outputs of the vertex shader struct.
+    The challenge here is to find the normal value of the pixel that the light is currently shading in the pixel shader. However, the shader's `uv` coordinate space is relative to the light itself, not the screen, the `NormalBuffer` is relative to the entire screen, not the light.
+
+    We need to be able to convert the light's `uv` coordinate space into screen space, which can be done in a custom vertex shader. The vertex shader's job is to convert the world space into clip space, which in a 2d game like _Dungeon Slime_, essentially _is_ screen space. The screen coordinates can be calculated in the vertex function and then passed along to the pixel shader by extending the outputs of the vertex shader struct.
 
    In order to override the vertex shader function, we will need to repeat the `MatrixTransform` work from the previous chapter. However, it would better to _re-use_ the work from the previous chapter so that the lights also tilt and respond to the `MatrixTransform` that the rest of the game world uses.
 
-   Add a reference to the `3dEffect.fxh` file in the `pointLightEffect.fx` shader:
+4. Add a reference to the `3dEffect.fxh` file in the `pointLightEffect.fx` shader:
 
-[!code-hlsl[](./snippets/snippet-8-56.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-56.hlsl)]
 
-5. However, we need to _extend_ the vertex function and add the extra field.
+5. We need to _extend_ the vertex function and add the extra field.
 
-   Create a new struct in the `pointLightEffect.fx` file:
+   Create a new struct in the `pointLightEffect.fx` file, replacing the old `VertexShaderOutput` struct:
 
-[!code-hlsl[](./snippets/snippet-8-57.hlsl?highlight=6)]
+    [!code-hlsl[](./snippets/snippet-8-57.hlsl?highlight=6)]
 
-6. Then, create a new vertex function that uses the new `LightVertexShaderOutput`. This function will call to the existing `MainVS` function that does the 3d effect, and add the screen coordinates afterwards:
+6. Next, create a new vertex function that uses the new `LightVertexShaderOutput`. This function will call to the existing `MainVS` function that does the 3d effect, and add the screen coordinates afterwards:
 
-[!code-hlsl[](./snippets/snippet-8-58.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-58.hlsl)]
 
 7. Make sure to update the `technique` to use the new vertex function:
 
-[!code-hlsl[](./snippets/snippet-8-59.hlsl?highlight=5)]
+    [!code-hlsl[](./snippets/snippet-8-59.hlsl?highlight=5)]
 
-8. In the pixel function, to visualize the screen coordinates, we will short-circuit the existing light code and just render out the screen coordinates. First, modify the input of the pixel function to be the `LightVertexShaderOutput` struct that was returned from the `LightVS` vertex function:
+8. In the pixel function, to visualize the screen coordinates, we will short-circuit the existing light code and just render out the screen coordinates by replacing the `MainPS` function with one that accepts the new `LightVertexShaderOutput` struct and make the function immediately return the screen coordinates in the red and green channel:
 
-[!code-hlsl[](./snippets/snippet-8-60.hlsl)]
+    [!code-hlsl[](./snippets/snippet-8-61.hlsl)]
 
-9. And make the function immediately return the screen coordinates in the red and green channel:
+9. Be careful, if you run the game now, it will not look right as we need to make sure to send the `MatrixTransform` parameter from C# as well.
 
-[!code-hlsl[](./snippets/snippet-8-61.hlsl?highlight=3)]
+    The `ScreenSize` parameter needs to be set for the effect in the `Update` method of the `GameScene` class to pass the `MatrixTransform` to _both_ the `_gameMaterial` _and_ the `Core.PointLightMaterial`:
 
-10. Be careful, if you run the game now, it will not look right. We need to make sure to send the `MatrixTransform` parameter from C# as well. In the `GameScene`'s `Update()` method, make sure to pass the `MatrixTransform` to _both_ the `_gameMaterial` _and_ the `Core.PointLightMaterial`.
+    [!code-csharp[](./snippets/snippet-8-62.cs)]
 
-    The `ScreenSize` parameter also needs to be sent:
+    | ![Figure 8-19: ](./images/light-screen.png) |
+    | :--------------------------------------------------------------------------------: |
+    |              **Figure 8-19: The point light can access screen space**              |
 
-[!code-csharp[](./snippets/snippet-8-62.cs)]
+    > [!NOTE]
+    > The `LightBuffer` is showing that red/greenish color gradient because we forced the shader to return the `input.ScreenCoordinates.xy`. This is only to verify that the `ScreenCoordinates` are working as expected.
 
-| ![Figure 8-19: ](./images/light-screen.png) |
-| :--------------------------------------------------------------------------------: |
-|              **Figure 8-19: The point light can access screen space**              |
+10. Now, the `pointLightEffect` can use the screen space coordinates to sample the `NormalBuffer` values. To build intuition, start by just returning the values from the `NormalBuffer`.
 
-> [!note]
-> The `LightBuffer` is showing that red/greenish color gradient because we forces the shader to return the `input.ScreenCoordinates.xy`. This is only to verify that the `ScreenCoordinates` are working as expected.
+    Start by updating the `MainPS` in the `pointLightEffect` shader to read the values from the `NormalBuffer` texture, and then return immediately:
 
-11. Now, the `pointLightEffect` can use the screen space coordinates to sample the `NormalBuffer` values. To build intuition, start by just returning the values from the `NormalBuffer`.
+    [!code-hlsl[](./snippets/snippet-8-63.hlsl)]
 
-    Start by reading those values, and then return immediately:
+11. Strangely, this will return a `white` box, instead of the normal data as expected, this happening because of a misunderstanding between the shader compiler and `SpriteBatch`.
 
-[!code-hlsl[](./snippets/snippet-8-63.hlsl)]
+    | ![Figure 8-20: A white box instead of the normal data?](./images/light-broken.png) |
+    | :--------------------------------------------------------------------------------: |
+    |              **Figure 8-20: A white box instead of the normal data?**              |
 
-12. Strangely, this will return a `white` box, instead of the normal data as expected.
+     _Most_ of the time when `SpriteBatch` is being used, there is a single `Texture` and `Sampler` being used to draw a sprite to the screen. The `SpriteBatch`'s draw function passes the given `Texture2D` to the shader by setting it in the `GraphicsDevice.Textures` array [directly](https://github.com/MonoGame/MonoGame/blob/develop/MonoGame.Framework/Graphics/SpriteBatcher.cs#L212). The texture is not being passed _by name_, it is being passed by _index_. In the lighting case, the `SpriteBatch` is being drawn with the `Core.Pixel` texture (a white 1x1 image we generated in the earlier chapters).
 
-| ![Figure 8-20: A white box instead of the normal data?](./images/light-broken.png) |
-| :--------------------------------------------------------------------------------: |
-|              **Figure 8-20: A white box instead of the normal data?**              |
+    However, the shader compiler will aggressively optimize away data that is not being used in the shader, the current `pointLightEffect.fx` does not _use_ the default texture or sampler that `SpriteBatch` expects by default. The default texture is _removed_ from the shader during compilation, because it is not used anywhere and has no effect. The only texture that is left is the `NormalBuffer`, which now becomes the first indexable texture.
 
-This happens because of a misunderstanding between the shader compiler and `SpriteBatch`. _Most_ of the time when `SpriteBatch` is being used, there is a single `Texture` and `Sampler` being used to draw a sprite to the screen. The `SpriteBatch`'s draw function passes the given `Texture2D` to the shader by setting it in the `GraphicsDevice.Textures` array [directly](https://github.com/MonoGame/MonoGame/blob/develop/MonoGame.Framework/Graphics/SpriteBatcher.cs#L212). The texture is not being passed _by name_, it is being passed by _index_. In the lighting case, the `SpriteBatch` is being drawn with the `Core.Pixel` texture (a white 1x1 image we generated in the earlier chapters).
+    Despite passing the `NormalBuffer` texture to the named `NormalTexture` `Texture2D` parameter in the shader before calling `SpriteBatch.Draw()`, the `SpriteBatch` code itself then overwrites whatever is in texture slot `0` with the texture passed to the `Draw()` call, the white pixel.
 
-However, the shader compiler will aggressively optimize away data that is not being used in the shader. The current `pointLightEffect.fx` does not _use_ the default texture or sampler that `SpriteBatch` expects by default. The default texture is _removed_ from the shader during compilation, because it is not used anywhere and has no effect. The only texture that is left is the `NormalBuffer`, which now becomes the first indexable texture.
+    There are two workarounds:
 
-Despite passing the `NormalBuffer` texture to the named `NormalTexture` `Texture2D` parameter in the shader before calling `SpriteBatch.Draw()`, the `SpriteBatch` code itself then overwrites whatever is in texture slot `0` with the texture passed to the `Draw()` call, the white pixel.
+    1. Modify the shader code to read data from the main `SpriteTextureSampler` and use the resulting color "_somehow_" in the computation fro the final result of the shader.
+        > [!NOTE]
+        > For example, You could multiple the color by a very small constant, like `.00001`, and then add the product to the final color. It would have no perceivable effect, but the shader compiler would not be optimize the sampler away. Hoewver, this is useless and silly work. Worse, it will likely confuse anyone who looks at the shader in the future.
+    2. The better approach is to pass the `NormalBuffer` to the `Draw()` function directly, and not bother sending it as a shader parameter at all.
 
-There are two workarounds.
+12. Change the `Draw()` method in the `PointLight` class to pass the `normalBuffer` to the `SpriteBatch.Draw()` method _instead_ of passing it in as a parameter to the `PointLightMaterial`.
 
-1. Modify the shader code to read data from the main `SpriteTextureSampler` and use the resulting color _somehow_ in the computation fro the final result of the shader. For example, You could multiple the color by a very small constant, like `.00001`, and then add the product to the final color. It would have no perceivable effect, but the shader compiler would not be optimize the sampler away. Hoewver, this is useless and silly work. Worse, it will likely confuse anyone who looks at the shader in the future.
-2. The better approach is to pass the `NormalBuffer` to the `Draw()` function directly, and not bother sending it as a shader parameter at all.
+    Here is the updated `Draw()` method:
 
-Change the `PointLight.Draw()` method to pass the `normalBuffer` to the `SpriteBatch.Draw()` method _instead_ of passing it in as a parameter to the `PointLightMaterial`. Here is the new `PointLight.Draw()` method:
+    [!code-csharp[](./snippets/snippet-8-64.cs)]
 
-[!code-csharp[](./snippets/snippet-8-64.cs)]
+    And now the normal map is being rendered where the light exists.
 
-And now the normal map is being rendered where the light exists.
+    | ![Figure 8-21: The light shows the normal map entirely](./images/light-normal.png) |
+    | :--------------------------------------------------------------------------------: |
+    |              **Figure 8-21: The light shows the normal map entirely**              |
 
-| ![Figure 8-21: The light shows the normal map entirely](./images/light-normal.png) |
-| :--------------------------------------------------------------------------------: |
-|              **Figure 8-21: The light shows the normal map entirely**              |
+    Now it is time to _use_ the normal data in conjunction with the light direction to decide how much light each pixel should receive.
 
-Now it is time to _use_ the normal data in conjunction with the light direction to decide how much light each pixel should receive.
+13. Replace the `MainPS` function in the `pointLightEffect` shader code to the following:
 
-1. Add this shader code to the pixel function:
+    [!code-hlsl[](./snippets/snippet-8-65.hlsl)]
 
-[!code-hlsl[](./snippets/snippet-8-65.hlsl)]
+    > [!NOTE]
+    > The `normalDir`, `lightDir`, and [`dot`](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-dot) product are a simplified version of the [Blinn-Phong shading model](https://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_reflection_model).
 
-> [!note]
-> The `normalDir`, `lightDir`, and [`dot`](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-dot) product are a simplified version of the [Blinn-Phong shading model](https://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_reflection_model).
+    | ![Figure 8-22: The light with the normal](./images/light-with-normal.png) |
+    | :-----------------------------------------------------------------------: |
+    |                **Figure 8-22: The light with the normal**                 |
 
-2. And then make the final color use the `lightAmount`:
-
-[!code-hlsl[](./snippets/snippet-8-66.hlsl?highlight=7)]
-
-| ![Figure 8-22: The light with the normal](./images/light-with-normal.png) |
-| :-----------------------------------------------------------------------: |
-|                **Figure 8-22: The light with the normal**                 |
-
-To drive the effect for a moment, this gif shows the normal effect being blended in. Notice how the wings on the bat shade differently based on their position towards the light as the normal effect is brought in.
+To drive the effect for a moment, this gif shows the normal effect being blended in. Notice how the wings on the bat shade differently based on their position towards the light as the normal effect is brought in. (I added a test property to alter the normal strength just for observation to demonstrate)
 
 | ![Figure 8-23: The lighting on the bat with normals](./gifs/normals.gif) |
 | :----------------------------------------------------------------------: |
@@ -540,19 +538,23 @@ Now that we have lights rendering in the game, it is time to hook a few more up 
 
 1. Create a function in the `GameScene` that will initialize all of the lights. Feel free to add more:
 
-[!code-csharp[](./snippets/snippet-8-67.cs)]
+    [!code-csharp[](./snippets/snippet-8-67.cs)]
 
-2. Given that the lights have a dynamic nature to them with the normal maps, it would be good to move some of them around.
+2. Then replace the original code that created a single light with a call to the new `InitializeLights` method:
+
+    [!code-csharp[](./snippets/snippet-8-67-initialize.cs)]
+
+3. Given that the lights have a dynamic nature to them with the normal maps, it would be good to move some of them around.
 
    Add this function to the `GameScene`:
 
-[!code-csharp[](./snippets/snippet-8-68.cs)]
+    [!code-csharp[](./snippets/snippet-8-68.cs)]
 
-3. And call it from the `Update()` method:
+4. And call it from the `Update()` method:
 
-[!code-csharp[](./snippets/snippet-8-69.cs)]
+    [!code-csharp[](./snippets/snippet-8-69.cs)]
 
-And now when the game runs, it looks like this.
+And now when the game runs, it looks like this (provided you also turned off the `_deferredRenderer.DebugDraw` call in the `Draw` method in `GameScene`, and the `IsDebugVisible` for the materials).
 
 | ![Figure 8-26: The final results](./gifs/final.gif) |
 | :-------------------------------------------------: |
