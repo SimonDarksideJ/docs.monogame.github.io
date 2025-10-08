@@ -163,7 +163,7 @@ Follow along with the steps to set up the effect.
     [!code-hlsl[](./snippets/snippet-7-10.hlsl)]
 
     > [!WARNING]
-    > Shaders are written progressively, kind of like how JavaScript is. Constructs and parameters **MUST** appear or be defined **BEFORE** they are used, so if you add the above function BEFORE the struct for the `VertexShaderOutput`, the struct will not be recognized.
+    > Constructs and parameters **MUST** appear or be defined **BEFORE** they are used, so if you add the above function BEFORE the struct for the `VertexShaderOutput`, the struct will not be recognized.
     >
     > So be sure to place the function AFTER the struct and it work as intended.
 
@@ -368,7 +368,7 @@ MonoGame shaders can reference code from multiple files by using the `#include` 
 > [!TIP]
 > `.fxh` vs `.fx`.
 >
-> `.fxh` is purely convention. Technically you can use whatever file extension you want, but `.fxh` implies the usage of the file is for shared code, and does not contain a standalone effect itself. The `h` is simply referred to as a `header` class.
+> `.fxh` is purely convention. Technically you can use whatever file extension you want, but `.fxh` implies the usage of the file is for shared code, and does not contain a standalone effect itself. The `h` is simply referred to as a `header` file.
 
 Follow the steps below to refactor the shader code, and to use the `#include` syntax for referring to the new `.fxh` files.
 
