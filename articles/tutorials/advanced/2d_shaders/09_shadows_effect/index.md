@@ -64,7 +64,7 @@ To build some intuition, we will start by considering a shadow caster that is a 
 
 The shape we need to draw is the non-regular quadrilateral defined by `A`, `a`, `b`, and `B`. It is shaded in pink. These points are in world space. Given that we know where the line segment is, we know where `A` and `B` are, but we do not _yet_ know `a` and `b`'s location.
 
-> [!note]
+> [!NOTE]
 > `A` and `a` naming convention.
 >
 > The `A` and `a` points lay on the same ray from the light starting at `L`. The uppercase `A` denotes that the position is _first_ from the light's point of view. The same pattern holds for `B` and `b`.
@@ -130,7 +130,7 @@ To begin:
 
 Every point (`S`, `D`, `F`, and `G`) needs to find `P`. To do that, the `TexCoord` can be treated as a direction from `P` to the current point, and the `ScreenSize` shader parameter can be used to find the right amount of distance to travel along that direction:
 
-> [!note]
+> [!NOTE]
 > The next few snippets of shader code are pseudo code. Just follow along with the text and the full shader will be available later in the next section.
 
 [!code-hlsl[](./snippets/snippet-9-02.hlsl)]
@@ -248,7 +248,7 @@ We cannot implement the vertex shader theory until we can pack the `(B-A)` vecto
 
 > For the sake of brevity, we will skip over the derivation of these functions.
 
-> [!tip]
+> [!TIP]
 > _Bit-packing_ is a broad category of algorithms that change the underlying bit representation of some variable. The most basic idea is that all of your variables are just _bits_, and its up to you how you want to arrange them. To learn more, check out the following articles,
 >
 > 1. [Wikipedia article on Bit Operations](https://en.wikipedia.org/wiki/Bitwise_operation)
@@ -379,7 +379,7 @@ So far, we have built up an implementation for the shadow caster system using a 
 
     [!code-hlsl[](./snippets/snippet-9-39.hlsl)]
 
-    > [!tip]
+    > [!TIP]
     > This technique is called [back-face culling](https://en.wikipedia.org/wiki/Back-face_culling).
 
 7. Then in the pixel shader function, add this line to the top. The [`clip`](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-clip) function will completely discard the fragment and not draw anything to the `ShadowBuffer`:
@@ -610,30 +610,33 @@ We can now remove a lot of unnecessary code.
 
 ## Improving The Look and Feel
 
-The shadow technique we have developed so _cool_, but the visual effect leaves a lot to be desired. The shadows sort of look like dark polygons being drawn on top of the scene, rather than what they actually are, which is the absence of light in certain areas. Part of the problem is that the shadows have hard edges, and in real life, shadows fade smoothly across the boundary between light and darkness. Unfortunately for us, creating physically accurate shadows with soft edges is _hard_. There are lots of techniques you could try, like this technique for [rendering penumbra geometry](https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/), or [using 1d shadow maps](https://github.com/mattdesl/lwjgl-basics/wiki/2D-Pixel-Perfect-Shadows).
+The shadow technique we have developed looks _cool_, but the visual effect leaves a lot to be desired. The shadows look sort of like dark polygons being drawn on top of the scene, rather than what they actually are, which is the absence of light in certain areas. Part of the problem is that the shadows have hard edges, and in real life, shadows fade smoothly across the boundary between light and darkness. Unfortunately for us, creating physically accurate shadows with soft edges is _hard_. There are lots of techniques you could try, like this technique for [rendering penumbra geometry](https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/), or [using 1d shadow maps](https://github.com/mattdesl/lwjgl-basics/wiki/2D-Pixel-Perfect-Shadows).
 
-> ![note]
-> The 1d shadow mapping article references a classic article by Catalin Zima that seems to have fallen off the internet. Luckily the Internet Archive has it available, [here](https://web.archive.org/web/20160226133242/http://www.catalinzima.com/2010/07/my-technique-for-the-shader-based-dynamic-2d-shadows/)
+> [!NOTE]
+> The 1d shadow mapping article references a classic article by Catalin Zima, that seems to have fallen off the internet. Luckily the Internet Archive has it available, [here](https://web.archive.org/web/20160226133242/http://www.catalinzima.com/2010/07/my-technique-for-the-shader-based-dynamic-2d-shadows/)
 
 Soft shadow techniques are out of the scope of this tutorial, so we will need to find other ways to improve the look and feel of our hard-edged shadows. The first thing to do is let go of the need for "physically accurate" shadows. Our 2d _Dungeon Slime_ game is not physically accurate anyway, so the shadows do not need to be either.
 
 ### Less Is More
 
-The first thing to do is make _fewer_ lights. This is a personal choice, but I find that the lights we added earlier in the chapter are _cool_, but they are distracting. So many lights cause lots of shadows, and the shadows move around a lot and distract from the main object of the game, _eating bats_.
+The first thing to do is make _fewer_ lights. This is a personal choice, but I find that the lights we added earlier in the chapter are _cool_, but they are distracting. With so many lights it causes a lot of shadows, and as the shadows move around, they distract you from the main object of the game, _eating bats_.
 
-1. Originally, we added 4 lights at the top of the level because there were already 4 torches in the game world. Remove the two center toches by modifying the `tilemap-definition.xml`:
+1. Originally, we added 4 lights at the top of the level because there were already 4 torches in the game world. Remove the two center toches by modifying the `tilemap-definition.xml` in the `DungeonSlime` _Content/Images_ folder:
 
-[!code-xml[](./snippets/snippet-9-67.xml?highlight=6)]
+    [!code-xml[](./snippets/snippet-9-67.xml?highlight=6)]
 
-2. Next, remove the center lights from the `InitializeLights()` function.
-3. While we are it, replace final 2 moving lights for a single large light that sits at the bottom of the level. When you remove these lights, make sure to remove the `MoveLightsAround()` function as well.
-4. We can also get rid of the shadow caster for the walls of the level.
+2. Next we will update the `InitializeLights()` method in the `GameScene` class to simplify our point lights:
+    * Remove the center lights that were over the two wall lights we have omitted.
+    * Replace the 2 moving lights for a single large light that sits at the bottom of the level. 
+    * We can also get rid of the shadow caster for the walls of the level.
 
-Here is the final `InitializeLights()` function:
+    Here is the updated `InitializeLights()` method:
 
-[!code-csharp[](./snippets/snippet-9-68.cs)]
+    [!code-csharp[](./snippets/snippet-9-68.cs)]
 
-Now there is less visual shadow noise going on.
+3. Also Remove the `MoveLightsAround()` method and its call from `Update` as well to keep things simple.
+
+Now there is less visual shadow noise going on. (don't forget to remove)
 
 | ![Figure 9-22: Fewer lights mean fewer shadows](./gifs/less-is-more.gif) |
 | :----------------------------------------------------------------------: |
@@ -647,26 +650,29 @@ We will be using a simple blur technique called [box blur](https://en.wikipedia.
 
 1. Add this snippet to your `deferredCompositeEffect.fx`:
 
-[!code-hlsl[](./snippets/snippet-9-69.hlsl)]
+    [!code-hlsl[](./snippets/snippet-9-69.hlsl)]
 
 2. Then, in the `MainPS` function of the shader, instead of reading the `LightBuffer` directly, get the value from the new `Blur` function.
 
-[!code-hlsl[](./snippets/snippet-9-71.hlsl?highlight=4)]
+    [!code-hlsl[](./snippets/snippet-9-71.hlsl?highlight=4)]
 
 3. Notice that the box blur needs access to the `ScreenSize`, which we need to set in the `Core`'s `Update()` method:
 
-[!code-csharp[](./snippets/snippet-9-70.cs?highlight=5)]
+    [!code-csharp[](./snippets/snippet-9-70.cs?highlight=5)]
 
 Now, as we adjust the `BoxBlurStride` size, we can see the shadows blur in and out.
 
-> [!note]
-> We could get higher quality blur by increasing the `kernalSize` in the shadow, but that comes at the cost of runtime performance.
+    > [!NOTE]
+    > We could get higher quality blur by increasing the `kernalSize` in the shadow, but that comes at the cost of runtime performance.
+    
+    | ![Figure 9-23: Bluring the shadows](./gifs/box-blur-extreme.gif) |
+    | :--------------------------------------------------------------: |
+    |              **Figure 9-23: Bluring the shadows**                |
 
-| ![Figure 9-23: Bluring the shadows](./gifs/box-blur-extreme.gif) |
-| :--------------------------------------------------------------: |
-|              **Figure 9-23: Bluring the shadows**                |
+    > [!NOTE]
+    > If you are not seeing the imgui window for the `deferredCompositeEffect`, make sure to add back in the `DeferredCompositeMaterial.IsDebugVisible = true;` setting in the `Core`'s `LoadContent` method.
 
-4. It is up to you to find a `BoxBlurStride` value that fits your preference, but I like something around `.18`:
+4. It is up to you to find a `BoxBlurStride` value that fits your preference, but I like something around `.18`, set the value just after the `ScreenSize` parameter in the `Update` method:
 
 ```csharp
 DeferredCompositeMaterial.SetParameter("BoxBlurStride", .18f);
@@ -686,73 +692,73 @@ We can use the same dithering technique in the `shadowHullEffect.fx` file. If we
 
 1. Add the following snippet to the `shadowHullEffect.fx` file,
 
-```hlsl
-// Bayer 4x4 values normalized
-static const float bayer4x4[16] = {
-    0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
-   12.0/16.0,  4.0/16.0, 14.0/16.0,  6.0/16.0,
-    3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
-   15.0/16.0,  7.0/16.0, 13.0/16.0,  5.0/16.0
-};
+    ```hlsl
+    // Bayer 4x4 values normalized
+    static const float bayer4x4[16] = {
+        0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
+       12.0/16.0,  4.0/16.0, 14.0/16.0,  6.0/16.0,
+        3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
+       15.0/16.0,  7.0/16.0, 13.0/16.0,  5.0/16.0
+    };
+    
+    float ShadowFadeStartDistance;
+    float ShadowFadeEndDistance;
+    ```
 
-float ShadowFadeStartDistance;
-float ShadowFadeEndDistance;
-```
+2. And update the `MainPS` function to the following:
 
-2. Set the `MainPS` function to the following:
-
-```hlsl
-float4 MainPS(VertexShaderOutput input) : COLOR
-{
-    // get an ordered dither value
-    int2 pixel = int2(input.TextureCoordinates * ScreenSize);
-    int idx = (pixel.x % 4) + (pixel.y % 4) * 4;
-    float ditherValue = bayer4x4[idx];
-
-    // produce the fade-out gradient
-    float maxDistance = ScreenSize.x + ScreenSize.y;
-    float endDistance = ShadowFadeEndDistance;
-    float startDistance = ShadowFadeStartDistance;
-    float fade = saturate((input.TextureCoordinates.x - endDistance) / (startDistance - endDistance));
-
-    if (ditherValue > fade){
-        clip(-1);
+    ```hlsl
+    float4 MainPS(VertexShaderOutput input) : COLOR
+    {
+        // get an ordered dither value
+        int2 pixel = int2(input.TextureCoordinates * ScreenSize);
+        int idx = (pixel.x % 4) + (pixel.y % 4) * 4;
+        float ditherValue = bayer4x4[idx];
+    
+        // produce the fade-out gradient
+        float maxDistance = ScreenSize.x + ScreenSize.y;
+        float endDistance = ShadowFadeEndDistance;
+        float startDistance = ShadowFadeStartDistance;
+        float fade = saturate((input.TextureCoordinates.x - endDistance) / (startDistance - endDistance));
+    
+        if (ditherValue > fade){
+            clip(-1);
+        }
+    
+        clip(input.Color.a);
+        return float4(0,0,0,1); // return black
     }
+    ```
 
-    clip(input.Color.a);
-    return float4(0,0,0,1); // return black
-}
-```
+    > [!NOTE]
+    > Why use `input.TextureCoordinates.x` ?
+    >
+    > The shader produces a `fade` value by interpolating the `input.TextureCoordinates.x` between a `startDistance` and `endDistance`. Recall from the [theory section](#rendering-the-shadow-buffer) that the texture coordinates are used to decide which vertex is which. The `.x` value of the texture coordinates is `1` when the vertex is the `D` or `F` vertex, and `0` otherwise. The `D` and `F` vertices are the ones that get projected far into the distance. Thus, the `.x` value is a good approximation of the "distance" of any given fragment.
 
-> [!note]
-> Why use `input.TextureCoordinates.x` ?
->
-> The shader produces a `fade` value by interpolating the `input.TextureCoordinates.x` between a `startDistance` and `endDistance`. Recall from the [theory section](#rendering-the-shadow-buffer) that the texture coordinates are used to decide which vertex is which. The `.x` value of the texture coordinates is `1` when the vertex is the `D` or `F` vertex, and `0` otherwise. The `D` and `F` vertices are the ones that get projected far into the distance. Thus, the `.x` value is a good approximation of the "distance" of any given fragment.
+    Now when you run the game, you can play around with the shader parameters to create a fall off gradient for the shadow.
 
-Now when you run the game, you can play around with the shader parameters to create a fall off gradient for the shadow.
+    | ![Figure 9-25: Controlling shadow length](./gifs/shadow-length.gif) |
+    | :-----------------------------------------------------------------: |
+    |            **Figure 9-23: Controlling shadow length**               |
 
-| ![Figure 9-25: Controlling shadow length](./gifs/shadow-length.gif) |
-| :-----------------------------------------------------------------: |
-|            **Figure 9-23: Controlling shadow length**               |
+    It is worth calling out that this dithering technique only works well because the box blur is covering the pixellated output. Try disabling the blur entirely, and pay attention to the shadow fall off gradient.
 
-It is worth calling out that this dithering technique only works well because the box blur is covering the pixellated output. Try disabling the blur entirely, and pay attention to the shadow fall off gradient.
+3. You will need to pick values that you like for the shadow fall off. I like `.013` for the start and `.13` for the end and set them in the `Update` method of the `Core` class before updating the `ShadowHullMaterial`:
 
-3. You will need to pick values that you like for the shadow fall off. I like `.013` for the start and `.13` for the end.
+    ```csharp
+    ShadowHullMaterial.SetParameter("ShadowFadeStartDistance", .013f);  
+    ShadowHullMaterial.SetParameter("ShadowFadeEndDistance", .13f);
+    ```
 
-```csharp
-ShadowHullMaterial.SetParameter("ShadowFadeStartDistance", .013f);  
-ShadowHullMaterial.SetParameter("ShadowFadeEndDistance", .13f);
-```
-
-> [!note]
-> These gradient numbers are relative to the screen size. If you want to think in terms of pixels, divide the values by the screen size to normalize them:
->
-> ```hlsl
-> float endDistance = ShadowFadeEndDistance / maxDistance;
-> float startDistance = ShadowFadeStartDistance / maxDistance;
-> ```
->
-> Keep in mind that the debug UI only sets shader parameters from `0` to `1`, so you will need to set these values from code.  
+    > [!NOTE]
+    > These gradient numbers are relative to the screen size. If you want to think in terms of pixels, divide the values by the screen size to normalize them:
+    >
+    > ```hlsl
+    > float endDistance = ShadowFadeEndDistance / maxDistance;
+    > float startDistance = ShadowFadeStartDistance / maxDistance;
+    > ```
+    >
+    > Keep in mind that the debug UI only sets shader parameters from `0` to `1`, so you will need to set these values from code.
 
 ### Shadow Intensity
 
@@ -760,19 +766,19 @@ The shadows are mostly solid, except for the blurring effect. However, that can 
 
 1. Modify the `shadowHullEffect.fx` to introduce a new shader parameter, `ShadowIntensity`, and use it to force dithering on top of the existing fade-out.
 
-[!code-hlsl[](./snippets/snippet-9-72.hlsl?highlight=3,17)]
+    [!code-hlsl[](./snippets/snippet-9-72.hlsl?highlight=3,17)]
 
-Now you can experiment with different intensity values and fade out the entire shadow.
+    Now you can experiment with different intensity values and fade out the entire shadow.
 
-| ![Figure 9-26: Controlling shadow intensity](./gifs/shadow-intensity.gif) |
-| :-----------------------------------------------------------------------: |
-|             **Figure 9-26: Controlling shadow intensity**                 |
+    | ![Figure 9-26: Controlling shadow intensity](./gifs/shadow-intensity.gif) |
+    | :-----------------------------------------------------------------------: |
+    |             **Figure 9-26: Controlling shadow intensity**                 |
 
-2. Pick a value that looks good to you, but I like `.85`.
+2. Pick a value that looks good to you, but I like `.85` and enter it in the `Core` class `Update` method.
 
-```csharp
-ShadowHullMaterial.SetParameter("ShadowIntensity", .85f);
-```
+    ```csharp
+    ShadowHullMaterial.SetParameter("ShadowIntensity", .85f);
+    ```
 
 ### No Self Shadows
 
@@ -792,47 +798,53 @@ In this new edition, the values of the stencil buffer are outlined below,
 
 Follow the steps to modify the code so that the snake appears stenciled out of the shadows.
 
-1. First, change the stencil buffer `.Clear()` call to clear the stencil buffer to `1` instead of `0`.
+1. First in the `DeferredRenderer` class, change the stencil buffer `.Clear()` call to clear the stencil buffer to `1` instead of `0` inside the `DrawLights` method:
 
-[!code-csharp[](./snippets/snippet-9-73.cs?highlight=14)]
+    [!code-csharp[](./snippets/snippet-9-73.cs?highlight=14)]
 
-2. Then, add a new `DepthStencilState` field to the `DeferredRenderer` class:
+2. Then, add a new `DepthStencilState` property to the `DeferredRenderer` class:
 
-```csharp
-/// <summary>
-/// The state that will be ignored from shadows
-/// </summary>
-private DepthStencilState _stencilShadowExclude;
-```
+    ```csharp
+    /// <summary>
+    /// The state that will be ignored from shadows
+    /// </summary>
+    private DepthStencilState _stencilShadowExclude;
+    ```
 
-3. We need to initialize the `_stencilShadowExclude` state in the constructor:
+3. Next, we need to initialize the `_stencilShadowExclude` state in the constructor:
 
-[!code-csharp[](./snippets/snippet-9-74.cs)]
+    [!code-csharp[](./snippets/snippet-9-74.cs)]
 
-4. We also need to update the existing states to take the new value into account:
+4. Then update the existing states to take the new value into account:
 
-[!code-csharp[](./snippets/snippet-9-75.cs)]
+    [!code-csharp[](./snippets/snippet-9-75.cs?highlight=7,11,27,30)]
 
-5. The snake actually needs to be drawn at the right location, at the right time. The quickest way to accomplish this is to introduce a callback in the `DrawLights()` method and allow the caller to inject a draw call.
+    The snake actually needs to be drawn at the right location, at the right time. The quickest way to accomplish this is to introduce a callback in the `DrawLights()` method and allow the caller to inject an additional draw call.
 
-   Modify the `DrawLights()` function like so:
+5. Modify the `DrawLights()` function like so:
 
-[!code-csharp[](./snippets/snippet-9-76.cs?highlight=1,17)]
+    [!code-csharp[](./snippets/snippet-9-76.cs?highlight=1,17)]
 
-6. And finally, the `GameScene`'s `Draw()` method should re-draw the snake segments in this callback:
+6. Adding the necessary `using` for the `Action` definition:
 
-```csharp
-// start rendering the lights
-_deferredRenderer.DrawLights(_lights, casters, (blend, stencil) =>
-{
-   Core.SpriteBatch.Begin(
-      effect: _gameMaterial.Effect,
-      depthStencilState: stencil,
-      blendState: blend);
-   _slime.Draw(_ => {});
-   Core.SpriteBatch.End();
-});
-```
+    ```csharp
+    using System;
+    ```
+
+7. Finally, the `GameScene`'s `Draw()` method should be updated to re-draw the snake segments in this callback:
+
+    ```csharp
+    // start rendering the lights
+    _deferredRenderer.DrawLights(_lights, casters, (blend, stencil) =>
+    {
+       Core.SpriteBatch.Begin(
+          effect: _gameMaterial.Effect,
+          depthStencilState: stencil,
+          blendState: blend);
+       _slime.Draw(_ => {});
+       Core.SpriteBatch.End();
+    });
+    ```
 
 Now even when the snake character is heading directly into a light, the segments in the back do not receive any shadows.
 
@@ -844,11 +856,11 @@ Now even when the snake character is heading directly into a light, the segments
 
 And with that, our lighting and shadow system is complete! In this chapter, you accomplished the following:
 
-- Learned the theory behind generating 2D shadow geometry from a light and a line segment.
-- Wrote a vertex shader to generate a "shadow hull" quad on the fly.
-- Implemented a shadow system using a memory-intensive texture-based approach.
-- Refactored the system to use the Stencil Buffer for masking.
-- Developed several techniques for improving the look and feel of the stencil shadows.
+* Learned the theory behind generating 2D shadow geometry from a light and a line segment.
+* Wrote a vertex shader to generate a "shadow hull" quad on the fly.
+* Implemented a shadow system using a memory-intensive texture-based approach.
+* Refactored the system to use the Stencil Buffer for masking.
+* Developed several techniques for improving the look and feel of the stencil shadows.
 
 In the final chapter, we will wrap up the series and discuss some other exciting graphics programming topics you could explore from here.
 
