@@ -5,7 +5,7 @@ description: "Add dynamic shadows to the game"
 
 Our lighting system is looking great, but the lights do not feel fully grounded in the world. They shine right through the walls, the bat, and even our slime! To truly sell the illusion of light, we need darkness. We need shadows.
 
-In this, our final effects chapter:
+In this final effects chapter:
 
 * We are going to implement a dynamic 2D shadow system. The shadows will be drawn with a new vertex shader, and integrated into the point light shader from the previous chapter.
 * After the effect is working, we will port the effect to use a more efficient approach using a tool called the _Stencil Buffer_. 
@@ -46,7 +46,7 @@ This resource is called the `ShadowBuffer`.
 
 We would need to have a `ShadowBuffer` for each light source, but if we did, then when the light was being rendered, we could pass in the `ShadowBuffer` as an additional texture resource to the `_pointLightEffect.fx`, and use the pixel value of the `ShadowBuffer` to mask the light source.
 
-In the sequence below, the left image is the just the `LightBuffer`. The middle image is the `ShadowBuffer`, and the right image is the product of the two images. Any pixel in the `ShadowBuffer` that was `white` means the final image uses the color from the `LightBuffer`, and any `black` pixel from the `ShaodwBuffer` becomes black in the final image as well. The multiplication of the `LightBuffer` and `ShadowBuffer` complete the shadow effect.
+In the sequence below, the left image is just the `LightBuffer`. The middle image is the `ShadowBuffer`, and the right image is the product of the two images. Any pixel in the `ShadowBuffer` that was `white` means the final image uses the color from the `LightBuffer`, and any `black` pixel from the `ShadowBuffer` becomes black in the final image as well. The multiplication of the `LightBuffer` and `ShadowBuffer` complete the shadow effect.
 
 | The `LightBuffer`                                         | The `ShadowBuffer`                                       | The multiplication of the two images                                     |
 | --------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -56,7 +56,7 @@ The mystery to unpack is step 1, how to render the `ShadowBuffer` in the first p
 
 ## Rendering the Shadow Buffer
 
-To build some intuition, we will start by considering a shadow caster that is a single line segment. If we can generate a shadow for a single line segment, then we could compose multiple line segments to replicate the shape of the slime sprite. In the image blow, there is a single light source at position `L`, and a line segment between points `A`, and `B`.
+To build some intuition, we will start by considering a shadow caster that is a single line segment. If we can generate a shadow for a single line segment, then we could compose multiple line segments to replicate the shape of the slime sprite. In the image below, there is a single light source at position `L`, and a line segment between points `A`, and `B`.
 
 | ![Figure 9-4: A diagram of a simple light and line segment](./images/light_math.png) |
 | :----------------------------------------------------------------------------------: |
@@ -77,7 +77,7 @@ This diagram shows an abstract pixel being drawn at some position `P`. The corne
 | :---------------------------------------------------------------: |
 |             **Figure 9-4: A diagram showing a pixel**             |
 
-Our goal is define a function that transforms the positions `S`, `D`, `F`, and `G` _into_ the positions, `A`, `a`, `b`, and `B`. The table below shows the desired mapping.
+Our goal is to define a function that transforms the positions `S`, `D`, `F`, and `G` _into_ the positions, `A`, `a`, `b`, and `B`. The table below shows the desired mapping.
 
 | Pixel Point | Shadow Hull Point |
 | ----------- | ----------------- |
@@ -86,7 +86,7 @@ Our goal is define a function that transforms the positions `S`, `D`, `F`, and `
 | F           | b                 |
 | G           | B                 |
 
-Each vertex (`S`, `D`, `F`, and `G`) have additional metadata beyond positional data. The diagram includes `P`, but that point is the point specified to _`SpriteBatch`_, and it is not available in the shader function. The vertex shader runs once for each vertex, but completely in isolation of the other vertices. Remember, the input for the standard vertex shader is as follows:
+Each vertex (`S`, `D`, `F`, and `G`) has additional metadata beyond positional data. The diagram includes `P`, but that point is the point specified to _`SpriteBatch`_, and it is not available in the shader function. The vertex shader runs once for each vertex, but completely in isolation of the other vertices. Remember, the input for the standard vertex shader is as follows:
 
 [!code-hlsl[](./snippets/snippet-9-01.hlsl)]
 
@@ -99,24 +99,24 @@ The `TexCoord` data is a two dimensional value that tells the pixel shader how t
 | F      | 1          | 1          |
 | G      | 0          | 1          |
 
-If we use the defaults, then we could use these values to compute a unique id for each vertex in the pixel. The function, `x + y*2` will produce a unique hash of the inputs for the domain we care about. The following table shows the unique values.
+If we use the defaults, then we could use these values to compute a unique ID for each vertex in the pixel. The function, `x + y*2` will produce a unique hash of the inputs for the domain we care about. The following table shows the unique values.
 
-| Vertex | TexCoord.x | TexCoord.y | Unique Id |
+| Vertex | TexCoord.x | TexCoord.y | unique ID |
 | ------ | ---------- | ---------- | --------- |
 | S      | 0          | 0          | 0         |
 | D      | 1          | 0          | 1         |
 | F      | 1          | 1          | 3         |
 | G      | 0          | 1          | 2         |
 
-The unique value is important, because it gives the vertex shader the ability to know _which_ vertex is being processed, rather than _any_ arbitrary vertex. For example, now the shader can know if it is processing `S`, or `D` based on if the unique id is `0` and `1`. The math for mapping `S` --> `A` may be quite different than the math for mapping `D` --> `a`.
+The unique value is important, because it gives the vertex shader the ability to know _which_ vertex is being processed, rather than _any_ arbitrary vertex. For example, now the shader can know if it is processing `S`, or `D` based on if the unique ID is `0` and `1`. The math for mapping `S` --> `A` may be quite different than the math for mapping `D` --> `a`.
 
-Additionally, the default `TexCoord` values allow the vertex shader to take any arbitrary position,  (`S`, `D`, `F`, and `G`) , and produce the point `P` where the `SpriteBatch` is drawing the sprite in world space. If you recall from the previous chapter, MonoGame uses the screen size as a basis for generating world space positions, and then the default projection matrix transforms those world space positions into clip space. Given a shader parameter, `float2 ScreenSize`,  the vertex shader can convert back from the world-space positions  (`S`, `D`, `F`, and `G`)  to the `P` position by subtracting `.5 * ScreenSize * TexCoord` from the current vertex.
+Additionally, the default `TexCoord` values allow the vertex shader to take any arbitrary positions, (`S`, `D`, `F`, and `G`), and produce the point `P` where the `SpriteBatch` is drawing the sprite in world space. If you recall from the previous chapter, MonoGame uses the screen size as a basis for generating world space positions, and then the default projection matrix transforms those world space positions into clip space. Given a shader parameter, `float2 ScreenSize`,  the vertex shader can convert back from the world-space positions  (`S`, `D`, `F`, and `G`)  to the `P` position by subtracting `.5 * ScreenSize * TexCoord` from the current vertex.
 
 The `Color` data is used to tint the resulting sprite in the pixel shader, but in our use case, for a shadow hull we do not really need a color whatsoever. Instead, we can use this `float4` field as arbitrary data. The trick is that we will need to pack whatever data we need into a `float4` and pass it via the `Color` type in MonoGame. This color comes from the `Color` value passed to the `SpriteBatch`'s `Draw()` call.
 
 The `Position` and `Color` both use `float4` in the standard vertex shader input, and it _may_ appear as though they should have the same precision, however, they are not passed from MonoGame's `SpriteBatch` as the same type. When `SpriteBatch` goes to draw a sprite, it uses a `Color` for the `Color`, and a `Vector3` for the `Position`. A `Color` has 4 `bytes`, but a `Vector3` has 12 `bytes`. This can be seen in the [`VertexPositionColorTexture`](https://github.com/MonoGame/MonoGame/blob/develop/MonoGame.Framework/Graphics/Vertices/VertexPositionColorTexture.cs#L103) class. The takeaway is that we can only pack a third as much data into the `Color` semantic as the `Position` gets, and that may limit the types of values we want to pack into the `Color` value.
 
-Finally, the light's position must be provided as a shader parameter, `float2 LightPosition`. The light's position should be in the same world-space coordinate system that the light is being drawn at itself.
+Finally, the light's position must be provided as a shader parameter, `float2 LightPosition`. The light's position should be in the same world-space coordinate system in which the light is drawn.
 
 ### Vertex Shader Theory
 
@@ -131,7 +131,7 @@ To begin:
 Every point (`S`, `D`, `F`, and `G`) needs to find `P`. To do that, the `TexCoord` can be treated as a direction from `P` to the current point, and the `ScreenSize` shader parameter can be used to find the right amount of distance to travel along that direction:
 
 > [!NOTE]
-> The next few snippets of shader code are pseudo code. Just follow along with the text and the full shader will be available later in the next section.
+> The next few snippets of shader code are pseudocode. Just follow along with the text and the full shader will be available later in the next section.
 
 [!code-hlsl[](./snippets/snippet-9-02.hlsl)]
 
@@ -141,7 +141,7 @@ Next, we pack the `Color` value as the vector `(B - A)`:
 * The `y` component will live in the `blue` and `alpha` channels. In the vertex shader
 * The `B` can be derived by unpacking the `(B - A)` vector from the `COLOR` semantic and _adding_ it to the `A`.
 
-The reason we pack the _difference_ between `B` and `A` into the `Color`, and not `B` itself is due the lack of precision in the `Color` type. There are only 4 `bytes` to pack all the information, which means 2 `bytes` per `x` and `y`. Likely, the line segment will be small, so the values of `(B - A)` will fit easier into a 2 `byte` channel:
+The reason we pack the _difference_ between `B` and `A` into the `Color`, and not `B` itself is due to the lack of precision in the `Color` type. There are only 4 `bytes` to pack all the information, which means 2 `bytes` per `x` and `y`. Likely, the line segment will be small, so the values of `(B - A)` will fit easier into a 2-`byte` channel:
 
 [!code-hlsl[](./snippets/snippet-9-03.hlsl)]
 
@@ -157,7 +157,7 @@ The same can be said for `b`:
 
 [!code-hlsl[](./snippets/snippet-9-06.hlsl)]
 
-Now the vertex shader function knows all positions, `A`, `a`, `b`, and `B`. The `TexCoord` can be used to derive a unique id, and the unique id can be used to select one of the points:
+Now the vertex shader function knows all positions, `A`, `a`, `b`, and `B`. The `TexCoord` can be used to derive a unique ID, and the unique ID can be used to select one of the points:
 
 [!code-hlsl[](./snippets/snippet-9-07.hlsl)]
 
@@ -182,7 +182,7 @@ To start implementing the effect, create a new Sprite Effect in the `MonoGameLib
 
     [!code-csharp[](./snippets/snippet-9-09.cs)]
 
-3. Finally, update the `Update()`method on the `Material` in the `Core`'s `Update()` method. Without this, hot-reload will not work:
+3. Finally, update the `Update()` method on the `Material` in the `Core`'s `Update()` method. Without this, hot-reload will not work:
 
     [!code-csharp[](./snippets/snippet-9-10.cs)]
 
@@ -202,7 +202,7 @@ To represent the shadow casting objects in the game, we will create a new class 
 
     [!code-csharp[](./snippets/snippet-9-13.cs)]
 
-    Every `PointLight` needs its own `ShadowBuffer`. If you recall, the the `ShadowBuffer` is an off-screen texture that will have _white_ pixels where the light is visible, and _black_ pixels where light is not visible due to a shadow.
+    Every `PointLight` needs its own `ShadowBuffer`. If you recall, the `ShadowBuffer` is an off-screen texture that will have _white_ pixels where the light is visible, and _black_ pixels where light is not visible due to a shadow.
 
 4. Open the `PointLight` class in the `MonoGameLibrary` project and add a new `RenderTarget2D` field:
 
@@ -305,7 +305,7 @@ To get the basic shadow effect working with the rest of the renderer, we need to
 
     [!code-hlsl[](./snippets/snippet-9-29.hlsl?highlight=5,8)]
 
-3. Before running the game, we need to to pass the `ShadowBuffer` to the point light's draw invocation.
+3. Before running the game, we need to pass the `ShadowBuffer` to the point light's draw invocation.
 
    In the `Draw()` method in the `PointLight` class, change the `SpriteBatch` to use `Immediate` sorting, and forward the `ShadowBuffer` to the shader parameter for each light:
 
@@ -373,7 +373,7 @@ So far, we have built up an implementation for the shadow caster system using a 
     | :-------------------------------------------------------------------------------: |
     |                **Figure 9-11: The visual artifact has been fixed**                |
 
-    The next item to consider in the `ShadowHullEffect` shader, is that the the "inside" of the slime is not being lit. All of the segments are casting shadows, but it would be nice if only the segments on the far side of the slime cast shadows. We can take advantage of the fact that all of the line segments making up the shadow caster are _wound_ in the same direction:
+    The next item to consider in the `ShadowHullEffect` shader, is that the "inside" of the slime is not being lit. All of the segments are casting shadows, but it would be nice if only the segments on the far side of the slime cast shadows. We can take advantage of the fact that all of the line segments making up the shadow caster are _wound_ in the same direction:
 
 6. Add the following immediately after the previous addition in the `ShadowHullEffect` shader:
 
@@ -564,7 +564,7 @@ In the new `DrawLights()` method of the `DeferredRenderer` class, we need to ite
 
     This happens because the shadow hulls are _still_ being drawn as colors into the `LightBuffer`. The shadow hull shader is rendering a black pixel, so those black pixels are drawing on top of the `LightBuffer`'s previous point lights. To solve this, we need to create a custom `BlendState` that ignores all color channel writes.
 
-9. Create another a new variable in the `DeferredRenderer`:
+9. Create another new variable in the `DeferredRenderer`:
 
     [!code-csharp[](./snippets/snippet-9-62.cs)]
 
@@ -576,7 +576,7 @@ In the new `DrawLights()` method of the `DeferredRenderer` class, we need to ite
     >
     > Setting the `ColorWriteChannels` to `.None` means that the GPU still rasterizes the geometry, but no color will be written to the `LightBuffer`.
 
-11. Finally, pas it to the shadow hull `SpriteBatch` call:
+11. Finally, pass it to the shadow hull `SpriteBatch` call:
 
     [!code-csharp[](./snippets/snippet-9-64.cs?highlight=9)]
 
@@ -608,7 +608,7 @@ We can now remove a lot of unnecessary code.
 4. The `PointLight.DrawShadowBuffer()` function is no longer called. Remove it.
 5. The `PointLight.ShadowBuffer` `RenderTarget2D` is no longer used. Remove it. Anywhere that referenced the `ShadowBuffer` can also be removed, such as the constructor.
 
-## Improving The Look and Feel
+## Improving the Look and Feel
 
 The shadow technique we have developed looks _cool_, but the visual effect leaves a lot to be desired. The shadows look sort of like dark polygons being drawn on top of the scene, rather than what they actually are, which is the absence of light in certain areas. Part of the problem is that the shadows have hard edges, and in real life, shadows fade smoothly across the boundary between light and darkness. Unfortunately for us, creating physically accurate shadows with soft edges is _hard_. There are lots of techniques you could try, like this technique for [rendering penumbra geometry](https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/), or [using 1d shadow maps](https://github.com/mattdesl/lwjgl-basics/wiki/2D-Pixel-Perfect-Shadows).
 
@@ -621,7 +621,7 @@ Soft shadow techniques are out of the scope of this tutorial, so we will need to
 
 The first thing to do is make _fewer_ lights. This is a personal choice, but I find that the lights we added earlier in the chapter are _cool_, but they are distracting. With so many lights it causes a lot of shadows, and as the shadows move around, they distract you from the main object of the game, _eating bats_.
 
-1. Originally, we added 4 lights at the top of the level because there were already 4 torches in the game world. Remove the two center toches by modifying the `tilemap-definition.xml` in the `DungeonSlime` _Content/Images_ folder:
+1. Originally, we added 4 lights at the top of the level because there were already 4 torches in the game world. Remove the two center torches by modifying the `tilemap-definition.xml` in the `DungeonSlime` _Content/Images_ folder:
 
     [!code-xml[](./snippets/snippet-9-67.xml?highlight=6)]
 
@@ -636,7 +636,7 @@ The first thing to do is make _fewer_ lights. This is a personal choice, but I f
 
 3. Also Remove the `MoveLightsAround()` method and its call from `Update` as well to keep things simple.
 
-Now there is less visual shadow noise going on. (don't forget to remove)
+Now there is less visual shadow noise going on.
 
 | ![Figure 9-22: Fewer lights mean fewer shadows](./gifs/less-is-more.gif) |
 | :----------------------------------------------------------------------: |
@@ -663,14 +663,14 @@ We will be using a simple blur technique called [box blur](https://en.wikipedia.
 Now, as we adjust the `BoxBlurStride` size, we can see the shadows blur in and out.
 
     > [!NOTE]
-    > We could get higher quality blur by increasing the `kernalSize` in the shadow, but that comes at the cost of runtime performance.
+    > We could get higher quality blur by increasing the `kernelSize` in the shadow, but that comes at the cost of runtime performance.
     
     | ![Figure 9-23: Bluring the shadows](./gifs/box-blur-extreme.gif) |
     | :--------------------------------------------------------------: |
     |              **Figure 9-23: Bluring the shadows**                |
 
     > [!NOTE]
-    > If you are not seeing the imgui window for the `deferredCompositeEffect`, make sure to add back in the `DeferredCompositeMaterial.IsDebugVisible = true;` setting in the `Core`'s `LoadContent` method.
+    > If you are not seeing the ImGui window for the `deferredCompositeEffect`, make sure to add back in the `DeferredCompositeMaterial.IsDebugVisible = true;` setting in the `Core`'s `LoadContent` method.
 
 4. It is up to you to find a `BoxBlurStride` value that fits your preference, but I like something around `.18`, set the value just after the `ScreenSize` parameter in the `Update` method:
 
@@ -682,7 +682,7 @@ DeferredCompositeMaterial.SetParameter("BoxBlurStride", .18f);
 
 The next visual puzzle is that sometimes the shadow projections look unnatural. The shadows look too _long_. It would be nice to have some artistic control from how long the shadow hulls should be. Ideally, the hulls could be faded out at some distance away from the shadow caster. However, our shadows are using the stencil buffer to literally clip fragments out of the lights, and the stencil buffer cannot be "faded" in the tranditional sense.
 
-There is a technique called [dithering](https://surma.dev/things/ditherpunk/), which fakes a gradient by alternativing pixels on and off. The image below is from [wikipedia](https://en.wikipedia.org/wiki/Dither)'s article on dithering. The image only has two colors, _white_ and _black_. The image _looks_ shaded, but it is just in the art of spacing the black pixels further and further away in the brighter areas.
+There is a technique called [dithering](https://surma.dev/things/ditherpunk/), which fakes a gradient by alternativing pixels on and off. The image below is from [Wikipedia](https://en.wikipedia.org/wiki/Dither)'s article on dithering. The image only has two colors, _white_ and _black_. The image _looks_ shaded, but it is just in the art of spacing the black pixels further and further away in the brighter areas.
 
 | ![Figure 9-24: An example of a dithered image](https://upload.wikimedia.org/wikipedia/commons/e/ef/Michelangelo%27s_David_-_Bayer.png) |
 | :------------------------------------------------------------------------------------------------------------------------------------: |
@@ -735,15 +735,15 @@ We can use the same dithering technique in the `shadowHullEffect.fx` file. If we
     >
     > The shader produces a `fade` value by interpolating the `input.TextureCoordinates.x` between a `startDistance` and `endDistance`. Recall from the [theory section](#rendering-the-shadow-buffer) that the texture coordinates are used to decide which vertex is which. The `.x` value of the texture coordinates is `1` when the vertex is the `D` or `F` vertex, and `0` otherwise. The `D` and `F` vertices are the ones that get projected far into the distance. Thus, the `.x` value is a good approximation of the "distance" of any given fragment.
 
-    Now when you run the game, you can play around with the shader parameters to create a fall off gradient for the shadow.
+    Now when you run the game, you can play around with the shader parameters to create a falloff gradient for the shadow.
 
     | ![Figure 9-25: Controlling shadow length](./gifs/shadow-length.gif) |
     | :-----------------------------------------------------------------: |
     |            **Figure 9-23: Controlling shadow length**               |
 
-    It is worth calling out that this dithering technique only works well because the box blur is covering the pixellated output. Try disabling the blur entirely, and pay attention to the shadow fall off gradient.
+    It is worth calling out that this dithering technique only works well because the box blur is covering the pixelated output. Try disabling the blur entirely, and pay attention to the shadow falloff gradient.
 
-3. You will need to pick values that you like for the shadow fall off. I like `.013` for the start and `.13` for the end and set them in the `Update` method of the `Core` class before updating the `ShadowHullMaterial`:
+3. You will need to pick values that you like for the shadow falloff. I like `.013` for the start and `.13` for the end and set them in the `Update` method of the `Core` class before updating the `ShadowHullMaterial`:
 
     ```csharp
     ShadowHullMaterial.SetParameter("ShadowFadeStartDistance", .013f);  
@@ -864,6 +864,6 @@ And with that, our lighting and shadow system is complete! In this chapter, you 
 
 In the final chapter, we will wrap up the series and discuss some other exciting graphics programming topics you could explore from here.
 
-You can find the complete code sample for this tutorial series, [here](https://github.com/MonoGame/MonoGame.Samples/tree/3.8.4/Tutorials/2dShaders/src/09-Shadows-Effect/).
+You can find the complete code sample for this tutorial series [here](https://github.com/MonoGame/MonoGame.Samples/tree/3.8.4/Tutorials/2dShaders/src/09-Shadows-Effect/).
 
 Continue to the next chapter, [Chapter 10: Next Steps](../10_next_steps/index.md)
