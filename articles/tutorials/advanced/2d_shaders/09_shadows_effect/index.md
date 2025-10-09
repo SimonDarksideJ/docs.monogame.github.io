@@ -458,29 +458,47 @@ Add a shadow caster in the `InitializeLights()` function to represent the edge o
 
 The light and shadow system is working! However, there is a non-trivial amount of memory overhead for the effect. Every light has a full screen sized `ShadowBuffer`. At the moment, each `ShadowBuffer` is a `RenderTarget2D` with `32` bits of data per pixel. At our screen resolution of `1280` x `720`, that means every light adds roughly (`1280 * 720 * 32bits`) 3.6 _MB_ of overhead to the game! Our system is not taking full advantage of those 32 bits per pixel. Instead, all we really need is a _single_ bit, for "in shadow" or "not in shadow". In fact, all the `ShadowBuffer` is doing is operating as a _mask_ for the point light.
 
-Image masking is a common task in computer graphics. There is a built-in feature of MonoGame called the _Stencil Buffer_ that handles image masking without the need for any custom `RenderTarget` or shader logic. In fact, we will be able to remove a lot of the existing code and leverage the stencil instead.
+Image masking is a common task in computer graphics and there is a built-in feature of MonoGame called the _Stencil Buffer_ that handles image masking without the need for any custom `RenderTarget` or shader logic. In fact, we will be able to remove a lot of the existing code and leverage the stencil instead.
 
-The stencil buffer is a part of an existing `RenderTarget`, but we need to opt into using it. In the `DeferredRenderer` class, where the `LightBuffer` is being instantiated, change the `preferredDepthFormat` to `DepthFormat.Depth24Stencil8`:
+The stencil buffer is a part of an existing `RenderTarget`, but we need to opt into using it. In the `DeferredRenderer` class, where the `LightBuffer` is being instantiated:
 
-[!code-csharp[](./snippets/snippet-9-50.cs?highlight=7)]
+* Change the `preferredDepthFormat` to `DepthFormat.Depth24Stencil8` in the `DeferredRenderer` class:
+
+    [!code-csharp[](./snippets/snippet-9-50.cs?highlight=7)]
 
 The `LightBuffer` itself has `32` bits per pixel of `Color` data, _and_ an additional `32` bits of data split between the depth and stencil buffers. As the name suggests, the `Depth24Stencil8` format grants the depth buffer `24` bits of data, and the stencil buffer `8` bits of data. `8` bits are enough for a single `byte`, which means it can represent integers from `0` to `255`.
 
-For our use case, we will deal with the stencil buffer in two distinct steps. First, all of the shadow hulls will be drawn into the stencil buffer _instead_ of a unique `ShadowBuffer`. Anywhere a shadow hull is drawn, the stencil buffer will have a value of `1`, and anywhere without a shadow hull will have a value of `0`. Then, in the second step, when the point lights are drawn, the stencil buffer can be used as a mask where pixels are only drawn where the stencil buffer has a value of `0` (which means there was no shadow hull present in the previous step).
+For our use case, we will deal with the stencil buffer in two distinct steps.
+
+* First, all of the shadow hulls will be drawn into the stencil buffer _instead_ of a unique `ShadowBuffer`. Anywhere a shadow hull is drawn, the stencil buffer will have a value of `1`, and anywhere without a shadow hull will have a value of `0`.
+* Then, in the second step, when the point lights are drawn, the stencil buffer can be used as a mask where pixels are only drawn where the stencil buffer has a value of `0` (which means there was no shadow hull present in the previous step).
 
 The stencil buffer can be cleared and re-used between each light, so there is no need to have a buffer _per_ light. We will be able to completely remove the `ShadowBuffer` from the `PointLight` class. That also means we will not need to send the `ShadowBuffer` to the point light shader or read from it in shader code any longer.
 
 1. To get started, create a new method in the `DeferredRenderer` class called `DrawLights()`. This new method is going to completely replace some of our existing methods, but we will clean the unnecessary ones up when we are done with the new approach:
 
-[!code-csharp[](./snippets/snippet-9-51.cs)]
+    [!code-csharp[](./snippets/snippet-9-51.cs)]
 
-2. In the `GameScene`'s `Draw()` method, call the new `DrawLights()` method instead of the `DrawShadows()`, `StartLightPhase()` _and_ `PointLight.Draw()` methods. Here is a snippet of the `Draw()` method:
+2. Add a using for the `System.Collections.Generic` namespace to support the new `List` type:
 
-[!code-csharp[](./snippets/snippet-9-52.cs)]
+    ```csharp
+    using System.Collections.Generic;
+    ```
 
-3. Next, in the `pointLightEffect.fx` shader, we will not be using the `ShadowBuffer` anymore, so remove the `Texture2D ShadowBuffer` and `sampler2D ShadowBufferSampler`. Remove the `tex2D` read from the shadow image, and remove the final multiplication of the `shadow`. The end of the `pointLightEffect.fx` shader should read as follows:
+3. In the `GameScene`'s `Draw()` method, call the new `DrawLights()` method instead of the `DrawShadows()`, `StartLightPhase()` _and_ `PointLight.Draw()` methods. Here is a snippet of the `Draw()` method:
 
-[!code-hlsl[](./snippets/snippet-9-53.hlsl)]
+    [!code-csharp[](./snippets/snippet-9-52.cs?highlight=11-12)]
+
+4. Next, in the `pointLightEffect.fx` shader, we will not be using the `ShadowBuffer` anymore, so remove:
+
+    * The `Texture2D ShadowBuffer`
+    * The `sampler2D ShadowBufferSampler`
+    * Remove the `tex2D` read from the shadow image
+    * And the final multiplication of the `shadow`.
+
+    &nbsp;The end of the `pointLightEffect.fx` shader should read as follows:
+
+    [!code-hlsl[](./snippets/snippet-9-53.hlsl)]
 
 If you run the game now, you will not see any of the lights anymore.
 
@@ -488,89 +506,93 @@ If you run the game now, you will not see any of the lights anymore.
 | :------------------------------------------------------------: |
 |              **Figure 9-16: Back to square one**               |
 
-In the new `DrawLights()` method, we need to iterate over all the lights, and draw them. First, we need to set the current render target to the `LightBuffer` so it can be used in the deferred renderer composite stage:
+In the new `DrawLights()` method of the `DeferredRenderer` class, we need to iterate over all the lights, and draw them.
 
-[!code-csharp[](./snippets/snippet-9-54.cs)]
+1. First, we need to set the current render target to the `LightBuffer` so it can be used in the deferred renderer composite stage:
 
-Now the lights are back, but of course no shadows yet.
+    [!code-csharp[](./snippets/snippet-9-54.cs)]
 
-| ![Figure 9-17: Welcome back, lights](./images/stencil_lights.png) |
-| :---------------------------------------------------------------: |
-|               **Figure 9-17: Welcome back, lights**               |
+    Now the lights are back, but of course no shadows yet.
 
-As each light is about to draw, we need to draw the shadow hulls. Add this snippet to the top of the `foreach` loop. This code is mainly copied from our previous approach:
+    | ![Figure 9-17: Welcome back, lights](./images/stencil_lights.png) |
+    | :---------------------------------------------------------------: |
+    |               **Figure 9-17: Welcome back, lights**               |
 
-[!code-csharp[](./snippets/snippet-9-55.cs)]
+2. As each light is about to draw, we need to draw the shadow hulls. To achieve this, replace the `foreach` loop of the `DrawLights` method with the following:
 
-This produces strange results. So far, the stencil buffer is not being used yet, so all we are doing is rendering the shadow hulls onto the same image as the light data itself. Worse, the alternating order from rendering shadows to lights, back to shadows, and so on produces very visually decoherent results.
+    [!code-csharp[](./snippets/snippet-9-55.cs?highlight=14-34)]
 
-| ![Figure 9-18: Worse shadows](./images/stencil_pre.png) |
-| :-----------------------------------------------------: |
-|             **Figure 9-18: Worse shadows**              |
+    This produces strange results. So far, the stencil buffer is not being used yet, so all we are doing is rendering the shadow hulls onto the same image as the light data itself. Worse, the alternating order from rendering shadows to lights, back to shadows, and so on produces very visually decoherent results.
 
-Instead of writing the shadow hulls as _color_ into the color portion of the `LightBuffer`, we only need to render the `1` or `0` to the stencil buffer portion of the `LightBuffer`. To do this, we need to create a new `DepthStencilState` variable. The `DepthStencilState` is a MonoGame primitive that describes how draw call operations should interact with the stencil buffer.
+    | ![Figure 9-18: Worse shadows](./images/stencil_pre.png) |
+    | :-----------------------------------------------------: |
+    |             **Figure 9-18: Worse shadows**              |
 
-1. Create a new class variable in the `DeferredRenderer` class:
+    Instead of writing the shadow hulls as _color_ into the color portion of the `LightBuffer`, we only need to render the `1` or `0` to the stencil buffer portion of the `LightBuffer`. To do this, we need to create a new `DepthStencilState` variable. The `DepthStencilState` is a MonoGame primitive that describes how draw call operations should interact with the stencil buffer.
 
-[!code-csharp[](./snippets/snippet-9-56.cs)]
+3. Create a new variable in the `DeferredRenderer` class:
 
-2. And initialize it in the constructor:
+    [!code-csharp[](./snippets/snippet-9-56.cs)]
 
-[!code-csharp[](./snippets/snippet-9-57.cs)]
+4. And initialize it in the constructor:
 
-3. The `_stencilWrite` variable is a declarative structure that tells MonoGame how the stencil buffer should be used during a `SpriteBatch` draw call. The next step is to actually pass the `_stencilWrite` declaration into the `SpriteBatch`'s `Draw()` call when the shadow hulls are being rendered:
+    [!code-csharp[](./snippets/snippet-9-57.cs)]
 
-[!code-csharp[](./snippets/snippet-9-58.cs?highlight=2)]
+5. The `_stencilWrite` variable is a declarative structure that tells MonoGame how the stencil buffer should be used during a `SpriteBatch` draw call. The next step is to actually pass the `_stencilWrite` declaration into the `SpriteBatch`'s `DrawLights()` call in the `DeferredRenderer` class when the shadow hulls are being rendered:
 
-Unfortunately, there is not a good way to visualize the state of the stencil buffer, so if you run the game, it is hard to tell if the stencil buffer contains any data. Instead, we will try and _use_ the stencil buffer's data when the point lights are drawn. The point lights will not interact with the stencil buffer in the same way the shadow hulls did.
+    [!code-csharp[](./snippets/snippet-9-58.cs?highlight=7)]
 
-1. To capture the new behavior, create a second `DepthStencilState` class variable:
+    Unfortunately, there is not a good way to visualize the state of the stencil buffer, so if you run the game, it is hard to tell if the stencil buffer contains any data. Instead, we will try and _use_ the stencil buffer's data when the point lights are drawn. The point lights will not interact with the stencil buffer in the same way the shadow hulls did.
 
-[!code-csharp[](./snippets/snippet-9-59.cs)]
+6. To capture the new behavior, create a second `DepthStencilState` class variable in the `DeferredRenderer` class:
 
-2. And initialize it in the constructor:
+    [!code-csharp[](./snippets/snippet-9-59.cs)]
 
-[!code-csharp[](./snippets/snippet-9-60.cs)]
+7. And initialize it in the constructor:
 
-3. And now pass the new `_stencilTest` state to the `SpriteBatch` `Draw()` call that draws the point lights:
+    [!code-csharp[](./snippets/snippet-9-60.cs)]
 
-[!code-csharp[](./snippets/snippet-9-61.cs?highlight=2)]
+8. And now pass the new `_stencilTest` state to the `SpriteBatch` `DrawLights()` call that draws the point lights:
 
-The shadows look _better_, but something is still broken. It looks eerily similar to the previous iteration before passing the `_stencilTest` and `_stencilWrite` declarations to `SpriteBatch`...
+    [!code-csharp[](./snippets/snippet-9-61.cs?highlight=8)]
 
-| ![Figure 9-19: The shadows still look funky](./images/stencil_blend.png) |
-| :----------------------------------------------------------------------: |
-|              **Figure 9-19: The shadows still look funky**               |
+    The shadows look _better_, but something is still broken. It looks eerily similar to the previous iteration before passing the `_stencilTest` and `_stencilWrite` declarations to `SpriteBatch`...
 
-This happens because the shadow hulls are _still_ being drawn as colors into the `LightBuffer`. The shadow hull shader is rendering a black pixel, so those black pixels are drawing on top of the `LightBuffer`'s previous point lights. To solve this, we need to create a custom `BlendState` that ignores all color channel writes.
+    | ![Figure 9-19: The shadows still look funky](./images/stencil_blend.png) |
+    | :----------------------------------------------------------------------: |
+    |              **Figure 9-19: The shadows still look funky**               |
 
-1. Create a new class variable in the `DeferredRenderer`:
+    This happens because the shadow hulls are _still_ being drawn as colors into the `LightBuffer`. The shadow hull shader is rendering a black pixel, so those black pixels are drawing on top of the `LightBuffer`'s previous point lights. To solve this, we need to create a custom `BlendState` that ignores all color channel writes.
 
-[!code-csharp[](./snippets/snippet-9-62.cs)]
+9. Create another a new variable in the `DeferredRenderer`:
 
-2. And initialize it in the constructor:
+    [!code-csharp[](./snippets/snippet-9-62.cs)]
 
-[!code-csharp[](./snippets/snippet-9-63.cs)]
+10. And initialize it in the constructor:
 
-> ![tip]
->
-> Setting the `ColorWriteChannels` to `.None` means that the GPU still rasterizes the geometry, but no color will be written to the `LightBuffer`.
+    [!code-csharp[](./snippets/snippet-9-63.cs)]
 
-3. Finally, pas it to the shadow hull `SpriteBatch` call:
+    > [!TIP]
+    >
+    > Setting the `ColorWriteChannels` to `.None` means that the GPU still rasterizes the geometry, but no color will be written to the `LightBuffer`.
 
-[!code-csharp[](./snippets/snippet-9-64.cs?highlight=4)]
+11. Finally, pas it to the shadow hull `SpriteBatch` call:
 
-Now the shadows look closer, but there is one final issue.
+    [!code-csharp[](./snippets/snippet-9-64.cs?highlight=9)]
 
-| ![Figure 9-20: The shadows are back](./images/stencil_noclear.png) |
-| :----------------------------------------------------------------: |
-|               **Figure 9-20: The shadows are back**                |
+    Now the shadows look closer, but there is one final issue.
 
-The `LightBuffer` is only being cleared at the start of the entire `DrawLights()` method. This means the `8` bits for the stencil data are not being cleared between lights, so shadows from one light are overwriting into all subsequent lights. To fix this, we just need to clear the stencil buffer data before rendering the shadow hulls:
+    | ![Figure 9-20: The shadows are back](./images/stencil_noclear.png) |
+    | :----------------------------------------------------------------: |
+    |               **Figure 9-20: The shadows are back**                |
 
-[!code-csharp[](./snippets/snippet-9-65.cs)]
+    The `LightBuffer` is only being cleared at the start of the entire `DrawLights()` method. This means the `8` bits for the stencil data are not being cleared between lights, so shadows from one light are overwriting into all subsequent lights.
 
-And now the shadows are working again! The final `DrawLights()` method is written below:
+12. To fix this, we just need to clear the stencil buffer data in the `DrawLights` method before rendering the shadow hulls:
+
+    [!code-csharp[](./snippets/snippet-9-65.cs?highlight=9)]
+
+And now the shadows are working again! The current state of the new `DrawLights()` method is written below:
 
 [!code-csharp[](./snippets/snippet-9-66.cs)]
 
@@ -578,13 +600,13 @@ And now the shadows are working again! The final `DrawLights()` method is writte
 | :-------------------------------------------------------------------------: |
 |              **Figure 9-21: Lights using the stencil buffer**               |
 
-We can remove a lot of unnecessary code.
+We can now remove a lot of unnecessary code.
 
 1. The `DeferredRenderer.StartLightPhase()` function is no longer called. Remove it.
 2. The `PointLight.DrawShadows()` function is no longer called. Remove it.
 3. The `PointLight.Draw()` function is no longer called. Remove it.
 4. The `PointLight.DrawShadowBuffer()` function is no longer called. Remove it.
-5. The `PointLight.ShadowBuffer` `RenderTarget` is no longer used. Remove it. Anywhere that referenced the `ShadowBuffer` can also be removed.
+5. The `PointLight.ShadowBuffer` `RenderTarget2D` is no longer used. Remove it. Anywhere that referenced the `ShadowBuffer` can also be removed, such as the constructor.
 
 ## Improving The Look and Feel
 
